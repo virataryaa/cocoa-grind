@@ -135,6 +135,12 @@ div[role="radiogroup"] label:has(input:checked) div[data-testid="stMarkdownConta
 .dtab td, .dtab td.dt, .dtab th { text-align: center !important; }
 .st-key-seasmode { display: flex; align-items: flex-end; }
 .st-key-seasmode div[role="radiogroup"] { margin-left: auto; }
+.st-key-pagenav div[role="radiogroup"] { background: #fbeee4 !important; width: 100%; }
+.st-key-pagenav div[role="radiogroup"] label { flex: 1; justify-content: center; padding: 6px 10px !important; }
+.st-key-pagenav div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] p { font-size: 13px !important; font-weight: 600; }
+.st-key-pagenav div[role="radiogroup"] label:last-of-type div[data-testid="stMarkdownContainer"] p { color: #b4500f !important; font-weight: 700; }
+.st-key-pagenav div[role="radiogroup"] label:last-of-type:has(input:checked) { background: #b4500f !important; }
+.st-key-pagenav div[role="radiogroup"] label:last-of-type:has(input:checked) div[data-testid="stMarkdownContainer"] p { color: #ffffff !important; }
 </style>
 """,
     unsafe_allow_html=True,
@@ -762,11 +768,14 @@ def render_history():
 # ---------------------------------------------------------------------------------------------
 df = load()                                                    # crop-year quarters, as stored (Entry works on this)
 TITLES = {"Total": "All Reported Grind : ECA + CAA + NCA + IVC + BR"}
-for _k, _v in {"series": "Total", "basis": "Crop year", "yrs": "Last 7", "page": "Charts & Tables"}.items():
+for _k, _v in {"series": "Total", "basis": "Crop year", "yrs": "Last 7", "page": "Dashboard"}.items():
     st.session_state.setdefault(_k, _v)
 
 with st.sidebar:                                               # all filters live here, as compact pill groups
     st.markdown("<div class='sb-title'>Cocoa Grind</div>", unsafe_allow_html=True)
+    with st.container(key="pagenav"):                          # Entry sits on its own, top of the pane
+        page = st.radio("Page", ["Dashboard", "Entry"], horizontal=True, label_visibility="collapsed", key="page")
+    st.markdown("<div class='sb-sep'></div>", unsafe_allow_html=True)
     grp_a = ["Total"] + ORIGINS
     grp_b = EXTRA + ["CAA ex-Malaysia", "ECA ex-German"]
     st.session_state.setdefault("ser_a", st.session_state["series"] if st.session_state["series"] in grp_a else None)
@@ -797,9 +806,7 @@ with st.sidebar:                                               # all filters liv
                 + "</table>", unsafe_allow_html=True)
 
 with st.container(key="hero"):                                 # navy header: title left, page tabs right
-    t_col, n_col = st.columns([3, 1.1], vertical_alignment="center")
-    with n_col:
-        page = st.radio("Page", ["Charts & Tables", "Entry"], horizontal=True, label_visibility="collapsed", key="page")
+    t_col = st.container()
     if page == "Entry":
         title, unit = "Grind Entry", "tonnes  ·  crop year, Q1 = Oct-Dec"
     else:
