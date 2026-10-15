@@ -903,6 +903,8 @@ def render_history():
 # ---------------------------------------------------------------------------------------------
 df = load()                                                    # crop-year quarters, as stored (Entry works on this)
 TITLES = {"Total": "All Reported Grind : ECA + CAA + NCA + IVC + BR"}
+# the open page also lives in the URL, so a reload (e.g. Streamlit Cloud redeploying after a save) lands back on it
+st.session_state.setdefault("page", "Entry" if st.query_params.get("page") == "entry" else "Dashboard")
 for _k, _v in {"series": "Total", "basis": "Crop year", "page": "Dashboard"}.items():
     st.session_state.setdefault(_k, _v)
 
@@ -916,6 +918,10 @@ with st.sidebar:                                               # all filters liv
             st.session_state["page"] = "Dashboard" if st.session_state["page"] == "Entry" else "Entry"
             st.rerun()
     page = st.session_state["page"]
+    if page == "Entry":
+        st.query_params["page"] = "entry"
+    elif "page" in st.query_params:
+        del st.query_params["page"]
     st.markdown("<div class='sb-sep'></div>", unsafe_allow_html=True)
     grp_a = ["Total"] + ORIGINS
     grp_b = EXTRA + ["CAA ex-Malaysia", "ECA ex-German"]
