@@ -133,6 +133,8 @@ div[role="radiogroup"] label:has(input:checked) div[data-testid="stMarkdownConta
 .st-key-filters div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] p { font-size: 12.5px !important; }
 .st-key-hero [data-testid="stColumn"]:last-child div[role="radiogroup"] label { padding: 5px 16px !important; }
 .dtab td, .dtab td.dt, .dtab th { text-align: center !important; }
+.st-key-seasmode { display: flex; align-items: flex-end; }
+.st-key-seasmode div[role="radiogroup"] { margin-left: auto; }
 </style>
 """,
     unsafe_allow_html=True,
@@ -266,6 +268,30 @@ def area_chart(d, series, h=200):
     st.plotly_chart(fig, width="stretch", key=f"area_{series}")
 
 
+def seasonality_bands(mat, series, n_years, h=250):
+    """Latest year against the history of the shown window: min-max, 10-90 and 25-75 bands (teal) and the average."""
+    qs = ["Q1", "Q2", "Q3", "Q4"]
+    shown = list(mat.index[-n_years:])
+    latest, hist = shown[-1], mat.loc[shown[:-1]]
+    fig = go.Figure()
+    if len(hist) >= 2:
+        for lo, hi, a, name in [(0, 1, 0.12, "Min-max"), (0.10, 0.90, 0.22, "10-90"), (0.25, 0.75, 0.38, "25-75")]:
+            fig.add_scatter(x=qs, y=hist.quantile(hi).values, mode="lines", line=dict(width=0), showlegend=False,
+                            hoverinfo="skip")
+            fig.add_scatter(x=qs, y=hist.quantile(lo).values, mode="lines", line=dict(width=0), fill="tonexty",
+                            fillcolor=f"rgba(31,138,156,{a})", name=f"{name} ({len(hist)}y)", hoverinfo="skip")
+        fig.add_scatter(x=qs, y=hist.mean().values, mode="lines", name="Average", line=dict(color=TEAL, width=2, dash="dot"))
+    prev = shown[-2] if len(shown) >= 2 else None
+    if prev:
+        fig.add_scatter(x=qs, y=mat.loc[prev].values, mode="lines+markers", name=prev, line=dict(color=RED, width=2),
+                        marker=dict(size=5))
+    fig.add_scatter(x=qs, y=mat.loc[latest].values, mode="lines+markers", name=latest, connectgaps=False,
+                    line=dict(color=NAVY, width=3.5), marker=dict(size=7))
+    chart_layout(fig, height=h, legend=dict(orientation="h", x=0, y=-0.1, xanchor="left", yanchor="top", font=dict(size=10),
+                                              bgcolor="rgba(0,0,0,0)"))
+    st.plotly_chart(fig, width="stretch", key=f"seasb_{series}_{n_years}")
+
+
 def seasonality_chart(mat, series, n_years=SHOW_YEARS, h=250):
     fig = go.Figure()
     shown = list(mat.index[-n_years:])
@@ -390,8 +416,15 @@ def dashboard(d, series, n_years, k, crop):
         card_head("Grind by origin" if series == "Total" else "Grind by quarter")
         area_chart(dn, series, 320)
     with r1[1], st.container(border=True):
-        card_head("Seasonality per quarter")
-        seasonality_chart(mat, series, n_years, 320)
+        hd = st.columns([1.3, 1], vertical_alignment="center")
+        with hd[0]:
+            card_head("Seasonality per quarter")
+        with hd[1], st.container(key="seasmode"):
+            mode = st.radio("Seasonality view", ["Bands", "All years"], horizontal=True, label_visibility="collapsed", key="seas_mode")
+        if mode == "Bands":
+            seasonality_bands(mat, series, n_years, 300)
+        else:
+            seasonality_chart(mat, series, n_years, 300)
     with r1[2], st.container(border=True):
         card_head(f"YTD (Q1 to Q{k})")
         ytd_chart(mat.loc[show], k, series, 320)
