@@ -93,11 +93,45 @@ div[role="radiogroup"] label:has(input:checked) div[data-testid="stMarkdownConta
 .stTabs [aria-selected="true"] { background: #0a2463 !important; color: #ffffff !important; }
 .stTabs [data-baseweb="tab-highlight"], .stTabs [data-baseweb="tab-border"] { display: none !important; }
 [data-testid="stSidebarUserContent"] { padding-top: 1rem !important; }
-[data-testid="stSidebar"] div[role="radiogroup"] { display: flex; flex-direction: column; align-items: stretch; width: 100%; border-radius: 22px; padding: 5px; gap: 3px; }
-[data-testid="stSidebar"] div[role="radiogroup"] label { padding: 8px 18px !important; }
-[data-testid="stSidebar"] div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] p { font-size: 15px !important; }
-.sb-label { font-size: 11px; color: #7a86a8; text-transform: uppercase; letter-spacing: .06em; margin: 14px 0 4px; }
+[data-testid="stSidebar"] { min-width: 270px !important; max-width: 270px !important; }
+[data-testid="stSidebar"] div[role="radiogroup"] { display: flex; flex-wrap: wrap; border-radius: 14px; padding: 4px; gap: 3px; width: 100%; }
+[data-testid="stSidebar"] div[role="radiogroup"] label { padding: 4px 11px !important; }
+[data-testid="stSidebar"] div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] p { font-size: 12.5px !important; }
+[data-testid="stSidebar"] [data-testid="stVerticalBlock"] { gap: 0.35rem; }
+[data-testid="stSidebar"] [data-testid="stWidgetLabel"] p { font-size: 10.5px !important; color: #0a2463 !important; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .08em; }
+[data-testid="stSidebar"] [data-testid="stWidgetLabel"] { margin-top: 6px; }
+.sb-sep { border-top: 1px solid #dfe3ee; margin: 12px 0 2px; }
+.sb-tab { font-size: 12px; color: #5a6688; border-collapse: collapse; width: 100%; }
+.sb-tab td { padding: 2px 4px; } .sb-tab td:last-child { text-align: right; color: #0a2463; }
+.sb-tab td.up { color: #1f9d6f !important; } .sb-tab td.dn { color: #c94a4a !important; }
+.sb-label { font-size: 10.5px; color: #0a2463; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; line-height: 1.5; padding: 10px 0 2px 2px; }
 [data-testid="stHorizontalBlock"] { margin-bottom: 0.2rem; }
+.st-key-hero { background: linear-gradient(135deg, #050f2c 0%, #0a1d4d 100%); border-radius: 14px;
+    padding: 6px 18px !important; margin-bottom: 8px; min-height: 54px; justify-content: center; box-shadow: 0 2px 10px rgba(10,36,99,.18); }
+.hero-t { color: #ffffff; font-size: 20px; font-weight: 700; letter-spacing: .01em; line-height: 1.3; }
+.hero-u { color: #9fb0d6; font-size: 12px; font-weight: 500; margin-left: 12px; }
+.st-key-hero [data-testid="stHorizontalBlock"] { margin-bottom: 0 !important; }
+.st-key-hero [data-testid="stColumn"]:last-child { display: flex; justify-content: flex-end; }
+.st-key-hero div[role="radiogroup"] { background: rgba(255,255,255,.10) !important; }
+.st-key-hero div[role="radiogroup"] label { padding: 4px 14px !important; }
+.st-key-hero div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] p { color: #c9d3ea !important; font-size: 13px !important; }
+.st-key-hero div[role="radiogroup"] label:has(input:checked) { background: #ffffff !important; }
+.st-key-hero div[role="radiogroup"] label:has(input:checked) div[data-testid="stMarkdownContainer"] p { color: #0a2463 !important; font-weight: 700; }
+.dtab.w { width: 100%; font-size: 12px; }
+.dtab.w td { padding: 3px 8px; }
+.dtab.w th { padding: 4px 8px; }
+.dtab td.up { color: #1f9d6f; font-weight: 600; } .dtab td.dn { color: #c94a4a; font-weight: 600; }
+.dtab tr.st td { background: #f4f6fb; font-style: italic; color: #4a5578; }
+.dtab tr.st0 td { border-top: 1.5px solid #c9d0e2; }
+.dtab td.sep { border-left: 1.5px solid #c9d0e2; }
+.block-container { max-width: 100% !important; padding-left: 1.6rem !important; padding-right: 1.6rem !important; }
+.st-key-filters { background: #ffffff; border: 1px solid #e3e7f0; border-radius: 12px; padding: 8px 16px 10px !important;
+    margin-bottom: 8px; box-shadow: 0 1px 3px rgba(10,36,99,0.06); }
+.flt-l { font-size: 10.5px; color: #0a2463; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; margin: 2px 0 4px 2px; }
+.st-key-filters div[role="radiogroup"] label { padding: 4px 13px !important; }
+.st-key-filters div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] p { font-size: 12.5px !important; }
+.st-key-hero [data-testid="stColumn"]:last-child div[role="radiogroup"] label { padding: 5px 16px !important; }
 </style>
 """,
     unsafe_allow_html=True,
@@ -193,7 +227,7 @@ def card_head(title, pill=None):
 # ---------------------------------------------------------------------------------------------
 # views
 # ---------------------------------------------------------------------------------------------
-def quarter_table(d, series):
+def quarter_table(d, series, wide=False):
     """Quarter list: values (all origins on the Total page) and the share column."""
     parent = PARENT.get(series)
     if series == "Total":
@@ -209,7 +243,7 @@ def quarter_table(d, series):
         rows += f"<tr{cls}><td class='dt'>{r.label}</td>" + "".join(
             f"<td{' class=b' if c in ('Total', series) else ''}>{fmt(r[c])}</td>" for c in cols)
         rows += (f"<td style='{heat(share[i], lo, hi)}'>{pct(share[i], 0)}</td>" if share is not None else "") + "</tr>"
-    st.markdown("<table class='dtab'><tr><th>Quarter</th>" + "".join(f"<th>{c}</th>" for c in cols)
+    st.markdown(f"<table class='dtab{' w' if wide else ''}'><tr><th>Quarter</th>" + "".join(f"<th>{c}</th>" for c in cols)
                 + (f"<th>{share_name}</th>" if share is not None else "") + f"</tr>{rows}</table>", unsafe_allow_html=True)
 
 
@@ -246,28 +280,44 @@ def seasonality_chart(mat, series, n_years=SHOW_YEARS, h=250):
 
 
 
-def q_table(mat):
+def q_table(mat, k, n_years):
     full = mat.notna().all(axis=1)
     tot = mat.sum(axis=1).where(full)
     yoy = tot.pct_change(fill_method=None)
-    cols = {c: (mat[c].min(), mat[c].max()) for c in mat.columns}
-    scale = yoy.abs().max()
+    ytd = mat[list(range(1, k + 1))].sum(axis=1, min_count=k)
+    ytd_yoy = ytd.pct_change(fill_method=None)
+    show = list(mat.index[-n_years:])
+    m = mat.loc[show]
+    rng = {c: (m[c].min(), m[c].max()) for c in m.columns}
+
+    def chg(v):
+        return f"<td class='{'up' if v >= 0 else 'dn'}'>{v:+.1%}</td>" if pd.notna(v) else "<td>-</td>"
+
     rows = ""
-    for cy in mat.index[::-1]:
+    for cy in show:
         rows += f"<tr><td class='dt'>{cy}</td>" + "".join(
-            f"<td style='{heat(mat.loc[cy, c], *cols[c])}'>{fmt(mat.loc[cy, c])}</td>" for c in mat.columns)
-        rows += f"<td class='b'>{fmt(tot[cy])}</td><td style='{heat_div(yoy[cy], scale)}'>{pct(yoy[cy])}</td></tr>"
-    st.markdown("<table class='dtab dtab-sm'><tr><th>Year</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th><th>Q1-Q4</th><th>%</th></tr>"
-                + rows + "</table>", unsafe_allow_html=True)
+            f"<td style='{heat(m.loc[cy, c], *rng[c])}'>{fmt(m.loc[cy, c])}</td>" for c in m.columns)
+        rows += (f"<td class='b sep'>{fmt(tot[cy])}</td>{chg(yoy[cy])}"
+                 f"<td class='b sep'>{fmt(ytd[cy])}</td>{chg(ytd_yoy[cy])}</tr>")
+    hist = show[:-1]
+    if len(hist) >= 2:
+        for i, (name, f) in enumerate([("Avg", "mean"), ("Min", "min"), ("Max", "max")]):
+            vals = [getattr(mat.loc[hist, c], f)() for c in m.columns]
+            rows += (f"<tr class='st{' st0' if i == 0 else ''}'><td class='dt'>{name} L{len(hist)}</td>"
+                     + "".join(f"<td>{fmt(v)}</td>" for v in vals)
+                     + f"<td class='sep'>{fmt(getattr(tot.loc[hist], f)())}</td><td></td>"
+                     + f"<td class='sep'>{fmt(getattr(ytd.loc[hist], f)())}</td><td></td></tr>")
+    st.markdown("<table class='dtab w'><tr><th>Year</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th><th>Total</th><th>Total YoY</th>"
+                f"<th>YTD (Q1-Q{k})</th><th>YTD YoY</th></tr>" + rows + "</table>", unsafe_allow_html=True)
 
 
 def change_table(chg):
     scale = float(chg.abs().stack().quantile(0.95)) if chg.notna().any().any() else 0
     rows = ""
-    for cy in chg.index[::-1]:
+    for cy in chg.index:
         rows += f"<tr><td class='dt'>{cy}</td>" + "".join(
             f"<td style='{heat_div(chg.loc[cy, c], scale)}'>{pct(chg.loc[cy, c])}</td>" for c in chg.columns) + "</tr>"
-    st.markdown("<table class='dtab dtab-sm'><tr><th>Year</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th></tr>" + rows + "</table>",
+    st.markdown("<table class='dtab w'><tr><th>Year</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th></tr>" + rows + "</table>",
                 unsafe_allow_html=True)
 
 
@@ -318,54 +368,68 @@ def mix_chart(d, h=220):
     st.plotly_chart(fig, width="stretch", key="mix_share")
 
 
-def dashboard(d, series, n_years, is_overview=False):
-    """One screen per series. Row 1: table | trend + seasonality | Q1-Q4, YoY, QoQ, share. Row 2: YTD | Q across years."""
+def hero(title, unit="", right=None):
+    """Navy header bar: page title left, optional control (e.g. quarter pills) right."""
+    with st.container(key="hero"):
+        t_col, r_col = st.columns([3, 1.3], vertical_alignment="center")
+        t_col.markdown(f"<div class='hero-t'>{title}" + (f"<span class='hero-u'>{unit}</span>" if unit else "") + "</div>",
+                       unsafe_allow_html=True)
+        if right:
+            with r_col:
+                return right()
+
+
+def dashboard(d, series, n_years, k, crop):
+    """Charts first (trend, seasonality, YTD | quarter across years, share), tables underneath."""
     mat = matrix(d, series)
-    last = d[d[series].notna()].iloc[-1]
-    qmax = int(last.q) if str(last.crop_year) == str(mat.index[-1]) else 4
-    if f"qsel_{series}" not in st.session_state:
-        st.session_state[f"qsel_{series}"] = f"Q{qmax}"
-    a, b, c = st.columns([1.5 if series == "Total" else 0.75, 1.75, 1.6], gap="small")
-    with a, st.container(border=True):
-        card_head("Quarterly grind", series)
-        quarter_table(d, series)
-    with b:
-        with st.container(border=True):
-            card_head("Grind by origin" if series == "Total" else f"{series} grind", series)
-            area_chart(d, series, 260)
-        with st.container(border=True):
-            card_head("Seasonality per quarter")
-            seasonality_chart(mat, series, n_years, 300)
-    with c:
-        with st.container(border=True):
-            card_head("Q1-Q4")
-            q_table(mat)
-        c2, c3 = st.columns(2, gap="small")
-        with c2, st.container(border=True):
+    show = list(mat.index[-n_years:])
+    dn = d[d.crop_year.isin(show)]
+    r1 = st.columns(3, gap="small")
+    with r1[0], st.container(border=True):
+        card_head("Grind by origin" if series == "Total" else "Grind by quarter")
+        area_chart(dn, series, 320)
+    with r1[1], st.container(border=True):
+        card_head("Seasonality per quarter")
+        seasonality_chart(mat, series, n_years, 320)
+    with r1[2], st.container(border=True):
+        card_head(f"YTD (Q1 to Q{k})")
+        ytd_chart(mat.loc[show], k, series, 320)
+    r2 = st.columns([1.75, 1, 1], gap="small")
+    with r2[0], st.container(border=True):
+        card_head(f"{series} grind by {'crop' if crop else 'calendar'} year")
+        q_table(mat, k, n_years)
+    with r2[1], st.container(border=True):
+        card_head(f"Q{k} across years")
+        quarter_bars(mat.loc[show], k, series, 255)
+    with r2[2], st.container(border=True):
+        if series == "Total":
+            card_head("Origin share of Total")
+            mix_chart(dn, 255)
+        else:
+            card_head(f"{series} as % of {PARENT[series]}")
+            share_chart(dn, series, 255)
+    yoy = mat.pct_change(fill_method=None).loc[show]
+    qq = pd.DataFrame(qoq(mat), index=mat.index, columns=mat.columns).loc[show]
+    if series == "Total":
+        r3 = st.columns([1, 1.75], gap="small")
+        with r3[0]:
+            with st.container(border=True):
+                card_head("YoY change")
+                change_table(yoy)
+            with st.container(border=True):
+                card_head("QoQ change")
+                change_table(qq)
+        with r3[1], st.container(border=True):
+            card_head("Quarterly grind by origin")
+            quarter_table(dn, series, wide=True)
+    else:
+        r3 = st.columns(2, gap="small")
+        with r3[0], st.container(border=True):
             card_head("YoY change")
-            change_table(mat.pct_change(fill_method=None))
-        with c3, st.container(border=True):
+            change_table(yoy)
+        with r3[1], st.container(border=True):
             card_head("QoQ change")
-            change_table(pd.DataFrame(qoq(mat), index=mat.index, columns=mat.columns))
-        if is_overview:
-            with st.container(border=True):
-                card_head("Origin share of Total")
-                mix_chart(d, 230)
-        elif series in PARENT:
-            with st.container(border=True):
-                card_head(f"{series} as % of {PARENT[series]}")
-                share_chart(d, series, 230)
-    hd = st.columns([5, 1.3], vertical_alignment="center")
-    with hd[1]:
-        k = int(st.radio("Quarter", ["Q1", "Q2", "Q3", "Q4"], horizontal=True, label_visibility="collapsed",
-                         key=f"qsel_{series}")[1])
-    y1, y2 = st.columns(2, gap="small")
-    with y1, st.container(border=True):
-        card_head(f"YTD (Q1 to Q{k})", series)
-        ytd_chart(mat, k, series, 270)
-    with y2, st.container(border=True):
-        card_head(f"Q{k} across years", series)
-        quarter_bars(mat, k, series, 270)
+            change_table(qq)
 
 
 # ---------------------------------------------------------------------------------------------
@@ -524,7 +588,7 @@ def render_entry(d):
     if st.session_state.get("flash"):
         st.toast(st.session_state.pop("flash"))
     editable = entry_enabled()
-    card_head("Entry", "crop year: Q1 = Oct-Dec")
+    card_head("Entry")
     if not editable:
         st.markdown("<div class='card-desc'>Read-only: add github_token in Secrets.</div>", unsafe_allow_html=True)
     y = int(d.cy0.max())
@@ -607,52 +671,61 @@ def render_history():
 # ---------------------------------------------------------------------------------------------
 # layout
 # ---------------------------------------------------------------------------------------------
-# widgets not drawn in a run lose their value (e.g. Year basis while Entry is open): keep a copy and restore it
-KEEP = ["basis", "yrs", "series_Origins", "series_Sub-regions"]
-for _k in KEEP:
-    if _k not in st.session_state and f"_keep_{_k}" in st.session_state:
-        st.session_state[_k] = st.session_state[f"_keep_{_k}"]
-
 df = load()                                                    # crop-year quarters, as stored (Entry works on this)
-dv = view(df, st.session_state.get("basis", "Crop year"))      # what the charts show
-latest = dv[dv.Total.notna()].iloc[-1]
-prev_y = dv[(dv.cy0 == latest.cy0 - 1) & (dv.q == latest.q)]
+TITLES = {"Total": "All Reported Grind : ECA + CAA + NCA + IVC + BR"}
+for _k, _v in {"series": "Total", "basis": "Crop year", "yrs": "Last 7", "page": "Charts & Tables"}.items():
+    st.session_state.setdefault(_k, _v)
 
-SECTIONS = {"Overview": ["Total"], "Origins": ORIGINS,
-            "Sub-regions": EXTRA + ["CAA ex-Malaysia", "ECA ex-German"]}
-with st.sidebar:
+with st.sidebar:                                               # all filters live here, as compact pill groups
     st.markdown("<div class='sb-title'>Cocoa Grind</div>", unsafe_allow_html=True)
-    st.markdown("<div class='sb-label'>Section</div>", unsafe_allow_html=True)
-    section = st.radio("Section", ["Overview", "Origins", "Sub-regions", "Entry"], label_visibility="collapsed", key="section")
-    series = "Total"
-    if section in SECTIONS and len(SECTIONS[section]) > 1:
-        st.markdown("<div class='sb-label'>Series</div>", unsafe_allow_html=True)
-        series = st.radio("Series", SECTIONS[section], label_visibility="collapsed", key=f"series_{section}")
-    if section != "Entry":
-        st.markdown("<div class='sb-label'>Year basis</div>", unsafe_allow_html=True)
-        st.radio("Year basis", ["Crop year", "Calendar year"], label_visibility="collapsed", key="basis")
-        st.markdown("<div class='sb-label'>Years shown</div>", unsafe_allow_html=True)
-        st.session_state.setdefault("yrs", "Last 7")
-        st.radio("Years shown", ["Last 5", "Last 7", "All"], horizontal=True, label_visibility="collapsed", key="yrs")
-    n_years = {"Last 5": 5, "Last 7": 7, "All": 99}.get(st.session_state.get("yrs", "Last 7"), 7)
-    st.markdown("<div class='sb-label'>Latest</div>", unsafe_allow_html=True)
-    stats = [("Latest quarter", latest.label, None), ("Total", fmt(latest.Total), None)]
-    if len(prev_y) and pd.notna(prev_y.Total.iloc[0]):
-        stats.append(("YoY", pct(latest.Total / prev_y.Total.iloc[0] - 1), f"vs {prev_y.label.iloc[0]}"))
-    html = "<div class='filter-stat'>" + "".join(
-        f"{a}: <b>{b}</b>" + (f" <span style='color:#7a86a8;'>({c})</span>" if c else "") + "<br>" for a, b, c in stats) + "</div>"
-    st.markdown(html, unsafe_allow_html=True)
+    grp_a = ["Total"] + ORIGINS
+    grp_b = EXTRA + ["CAA ex-Malaysia", "ECA ex-German"]
+    st.session_state.setdefault("ser_a", st.session_state["series"] if st.session_state["series"] in grp_a else None)
+    st.session_state.setdefault("ser_b", st.session_state["series"] if st.session_state["series"] in grp_b else None)
 
-if section == "Overview":
-    dashboard(dv, "Total", n_years, is_overview=True)
-elif section == "Entry":
+    def _pick(src, other):                                     # the two groups act as one selector
+        st.session_state["series"] = st.session_state[src]
+        st.session_state[other] = None
+
+    st.radio("Total & origins", grp_a, horizontal=True, key="ser_a", on_change=_pick, args=("ser_a", "ser_b"))
+    st.radio("Sub-regions", grp_b, horizontal=True, key="ser_b", on_change=_pick, args=("ser_b", "ser_a"))
+    series = st.session_state["series"]
+    st.markdown("<div class='sb-sep'></div>", unsafe_allow_html=True)
+    st.radio("Year basis", ["Crop year", "Calendar year"], horizontal=True, key="basis")
+    dv = view(df, st.session_state["basis"])
+    mat_s = matrix(dv, series)
+    last = dv[dv[series].notna()].iloc[-1]
+    if st.session_state.get("qsel") not in ("Q1", "Q2", "Q3", "Q4"):
+        st.session_state["qsel"] = f"Q{int(last.q) if str(last.crop_year) == str(mat_s.index[-1]) else 4}"
+    st.radio("Years shown", ["Last 5", "Last 7", "All"], horizontal=True, key="yrs")
+    st.radio("Quarter (YTD and bars)", ["Q1", "Q2", "Q3", "Q4"], horizontal=True, key="qsel")
+    ly = dv[(dv.cy0 == last.cy0 - 1) & (dv.q == last.q)]
+    yy = last[series] / ly[series].iloc[0] - 1 if len(ly) and pd.notna(ly[series].iloc[0]) else None
+    st.markdown("<div class='sb-sep'></div><div class='sb-label'>Latest</div>"
+                f"<table class='sb-tab'><tr><td>{series}</td><td><b>{fmt(last[series])}</b></td></tr>"
+                f"<tr><td>Quarter</td><td><b>{last.label}</b></td></tr>"
+                + (f"<tr><td>YoY</td><td class='{'up' if yy >= 0 else 'dn'}'><b>{yy:+.1%}</b></td></tr>" if yy is not None else "")
+                + "</table>", unsafe_allow_html=True)
+
+with st.container(key="hero"):                                 # navy header: title left, page tabs right
+    t_col, n_col = st.columns([3, 1.1], vertical_alignment="center")
+    with n_col:
+        page = st.radio("Page", ["Charts & Tables", "Entry"], horizontal=True, label_visibility="collapsed", key="page")
+    if page == "Entry":
+        title, unit = "Grind Entry", "tonnes  ·  crop year, Q1 = Oct-Dec"
+    else:
+        title = TITLES.get(series, f"{series} Grind")
+        unit = "tonnes  ·  " + ("Oct-Sep crop year" if st.session_state["basis"] == "Crop year" else "Jan-Dec calendar year")
+    t_col.markdown(f"<div class='hero-t'>{title}<span class='hero-u'>{unit}</span></div>", unsafe_allow_html=True)
+
+if page == "Entry":
     t_entry, t_hist = st.tabs(["Entry", "History"])
     with t_entry:
         le, ri = st.columns([1.6, 1.15], gap="medium")
         with le, st.container(border=True):
             render_entry(df)
         with ri, st.container(border=True):
-            card_head("Quarterly grind", "Total, crop year")
+            card_head("Quarterly grind")
             quarter_table(df, "Total")
     with t_hist:
         with st.container(border=True):
@@ -663,8 +736,5 @@ elif section == "Entry":
                 st.markdown("<div class='card-desc'>Add github_token in Secrets to see saves.</div>", unsafe_allow_html=True)
             st.download_button("Download CSV", df[["crop_year", "quarter", *COLS]].to_csv(index=False), "cocoa_grind.csv", "text/csv")
 else:
-    dashboard(dv, series, n_years)
-
-for _k in KEEP:
-    if _k in st.session_state:
-        st.session_state[f"_keep_{_k}"] = st.session_state[_k]
+    n_years = {"Last 5": 5, "Last 7": 7, "All": 99}[st.session_state["yrs"]]
+    dashboard(dv, series, n_years, int(st.session_state["qsel"][1]), st.session_state["basis"] == "Crop year")
