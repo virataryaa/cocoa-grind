@@ -71,7 +71,7 @@ div[role="radiogroup"] label:has(input:checked) div[data-testid="stMarkdownConta
 .pill { display: inline-block; background: #e6e9f2; color: #0a2463; font-size: 11px; font-weight: 600;
         padding: 1px 8px; border-radius: 999px; margin-left: 6px; vertical-align: middle; }
 
-.sb-title { font-family: 'Fraunces', Georgia, serif; font-size: 1.5rem; font-weight: 600; color: #0a2463; margin-bottom: 2px; }
+.sb-title { font-family: 'Fraunces', Georgia, serif; font-size: 1.5rem; font-weight: 600; color: #0a2463; margin-bottom: 16px; }
 .sb-caption { font-size: 11px; color: #7a86a8; margin-bottom: 16px; line-height: 1.4; }
 .filter-stat { font-size: 12px; color: #5a6688 !important; line-height: 1.7; margin-bottom: 14px; }
 .filter-stat b { color: #0a2463 !important; font-size: 13px; }
@@ -144,6 +144,13 @@ div[role="radiogroup"] label:has(input:checked) div[data-testid="stMarkdownConta
 .st-key-pagenav [data-testid="stBaseButton-primary"] { background: #fbeee4 !important; color: #b4500f !important; border-color: #b4500f !important; }
 .st-key-pagenav button p { font-size: 12px !important; font-weight: 600; }
 .pill.sm { font-size: 10px; font-weight: 500; color: #5a6688; background: #eef0f6; }
+[data-testid="stSidebar"] [data-testid="stButtonGroup"] { background: #eef0f6; border-radius: 14px; padding: 4px; }
+[data-testid="stSidebar"] [data-testid="stBaseButton-pills"] { background: transparent !important; border: none !important; color: #5a6688 !important;
+    padding: 2px 11px !important; min-height: 0 !important; }
+[data-testid="stSidebar"] [data-testid="stBaseButton-pillsActive"] { background: #0a2463 !important; border: none !important; color: #ffffff !important;
+    padding: 2px 11px !important; min-height: 0 !important; }
+[data-testid="stSidebar"] [data-testid="stBaseButton-pills"] p, [data-testid="stSidebar"] [data-testid="stBaseButton-pillsActive"] p { font-size: 12.5px !important; }
+[data-testid="stSidebar"] [data-testid="stBaseButton-pillsActive"] p { font-weight: 700; }
 </style>
 """,
     unsafe_allow_html=True,
@@ -576,76 +583,79 @@ def hero(title, unit="", right=None):
 
 
 def dashboard(d, series, n_years, k, crop):
-    """Charts first (trend, seasonality, YTD | quarter across years, share), tables underneath."""
+    """Row 1 year bars | row 2 over time | row 3 seasonality + diagnostics | tables underneath."""
     mat = matrix(d, series)
     show = list(mat.index[-n_years:])
     dn = d[d.crop_year.isin(show)]
+    H = 300
     r1 = st.columns(3, gap="small")
     with r1[0], st.container(border=True):
-        card_head("Grind by origin" if series == "Total" else "Grind by quarter")
-        area_chart(dn, series, 320)
+        card_head(f"YTD (Q1 to Q{k})")
+        ytd_chart(mat, k, series, H, show)
     with r1[1], st.container(border=True):
+        card_head(f"Q{k} across years")
+        yoy_bars(mat[k].dropna(), f"qbar_{series}_{k}", H, show)
+    with r1[2], st.container(border=True):
+        _, p = full_year(mat)
+        card_head("Full-year totals", f"range {fmt(p['lo'])} - {fmt(p['hi'])}" if p else None, small=True)
+        full_year_chart(mat, series, show, H)
+
+    r2 = st.columns(3, gap="small")
+    with r2[0], st.container(border=True):
+        card_head("Grind by origin" if series == "Total" else "Grind by quarter")
+        area_chart(dn, series, H)
+    with r2[1], st.container(border=True):
+        card_head("Rolling 4-quarter total")
+        rolling_chart(d, series, H)
+    with r2[2], st.container(border=True):
+        if series == "Total":
+            card_head("Origin share of Total")
+            share_lines(dn, H)
+        else:
+            card_head(f"{series} as % of {PARENT[series]}")
+            share_chart(dn, series, H)
+
+    r3 = st.columns(3 if series in CONTRIB else 2, gap="small")
+    with r3[0], st.container(border=True):
         hd = st.columns([1.3, 1], vertical_alignment="center")
         with hd[0]:
             card_head("Seasonality per quarter")
         with hd[1], st.container(key="seasmode"):
             mode = st.radio("Seasonality view", ["Bands", "All years"], horizontal=True, label_visibility="collapsed", key="seas_mode")
         if mode == "Bands":
-            seasonality_bands(mat, series, n_years, 300)
+            seasonality_bands(mat, series, n_years, H)
         else:
-            seasonality_chart(mat, series, SHOW_YEARS, 300)
-    with r1[2], st.container(border=True):
-        card_head(f"YTD (Q1 to Q{k})")
-        ytd_chart(mat, k, series, 320, show)
-    r2 = st.columns(3, gap="small")
-    with r2[0], st.container(border=True):
-        _, p = full_year(mat)
-        card_head("Full-year totals", f"range {fmt(p['lo'])} - {fmt(p['hi'])}" if p else None, small=True)
-        full_year_chart(mat, series, show, 270)
-    with r2[1], st.container(border=True):
-        card_head(f"Q{k} across years")
-        yoy_bars(mat[k].dropna(), f"qbar_{series}_{k}", 270, show)
-    with r2[2], st.container(border=True):
-        if series == "Total":
-            card_head("Origin share of Total")
-            share_lines(dn, 270)
-        else:
-            card_head(f"{series} as % of {PARENT[series]}")
-            share_chart(dn, series, 270)
-    ra = st.columns(3, gap="small")
-    with ra[0], st.container(border=True):
-        card_head("Rolling 4-quarter total")
-        rolling_chart(d, series, 270)
-    with ra[1], st.container(border=True):
-        card_head("vs 5-year average, same quarter")
-        deviation_chart(d, series, 270)
-    with ra[2], st.container(border=True):
-        if series in CONTRIB:
+            seasonality_chart(mat, series, SHOW_YEARS, H)
+    with r3[1], st.container(border=True):
+        card_head("vs prior 5-yr average (same quarter)")
+        deviation_chart(d, series, H)
+    if series in CONTRIB:
+        with r3[2], st.container(border=True):
             card_head(f"Q{k} YoY contribution")
-            contribution_chart(d, series, k, show, 270)
-        else:
-            card_head("YoY by origin, last 8 quarters")
-            origin_yoy_heatmap(d)
-    if series in CONTRIB and series == "Total":
-        with st.container(border=True):
-            card_head("YoY by origin, last 8 quarters")
-            origin_yoy_heatmap(d)
+            contribution_chart(d, series, k, show, H)
+
     yoy = mat.pct_change(fill_method=None).loc[show]
     qq = pd.DataFrame(qoq(mat), index=mat.index, columns=mat.columns).loc[show]
-    r3 = st.columns([1.35, 0.8, 0.8], gap="small")
-    with r3[0], st.container(border=True):
+    t1 = st.columns([2.1, 1, 1], gap="small")
+    with t1[0], st.container(border=True):
         card_head(f"{series} grind by {'crop' if crop else 'calendar'} year")
         q_table(mat, k, n_years)
-    with r3[1], st.container(border=True):
+    with t1[1], st.container(border=True):
         card_head("YoY change")
         change_table(yoy)
-    with r3[2], st.container(border=True):
+    with t1[2], st.container(border=True):
         card_head("QoQ change")
         change_table(qq)
-    if series == "Total":
-        with st.container(border=True):
-            card_head("Quarterly grind by origin")
-            quarter_table(dn, series, wide=True)
+
+    t2 = st.columns([1.6, 1], gap="small")
+    with t2[0], st.container(border=True):
+        card_head("YoY by origin, last 8 quarters")
+        origin_yoy_heatmap(d)
+    with t2[1], st.container(border=True):
+        card_head("Quarterly grind" + (" by origin" if series == "Total" else ""), "last 8 quarters", small=True)
+        quarter_table(d[d[series].notna()].tail(8), series, wide=True)
+    with st.expander("All quarters"):
+        quarter_table(d, series, wide=True)
 
 
 # ---------------------------------------------------------------------------------------------
@@ -819,8 +829,7 @@ def render_entry(d):
     cfg["Total"] = st.column_config.TextColumn("Total", alignment="center", width=82, disabled=True)
     cfg["_index"] = st.column_config.TextColumn("Quarter", width=82)
     key = "entry_grid"
-    shown = g.style.set_properties(subset=["Total"], **{"background-color": "#e9ecf2", "font-weight": "600"})
-    after = st.data_editor(shown, column_config=cfg, disabled=not editable, width="content", row_height=30,
+    after = st.data_editor(g, column_config=cfg, disabled=not editable, width="content", row_height=30,
                            height=len(g) * 30 + 52, key=key)
     changes = {}
     try:
@@ -909,12 +918,15 @@ with st.sidebar:                                               # all filters liv
     st.session_state.setdefault("ser_b", st.session_state["series"] if st.session_state["series"] in grp_b else None)
 
     def _pick(src, other):                                     # the two groups act as one selector
+        if st.session_state[src] is None:                      # clicking the active pill again: keep it
+            st.session_state[src] = st.session_state["series"]
+            return
         st.session_state["series"] = st.session_state[src]
         st.session_state[other] = None
         _to_dash()
 
-    st.radio("Total & origins", grp_a, horizontal=True, key="ser_a", on_change=_pick, args=("ser_a", "ser_b"))
-    st.radio("Sub-regions", grp_b, horizontal=True, key="ser_b", on_change=_pick, args=("ser_b", "ser_a"))
+    st.pills("Total & origins", grp_a, selection_mode="single", key="ser_a", on_change=_pick, args=("ser_a", "ser_b"))
+    st.pills("Sub-regions", grp_b, selection_mode="single", key="ser_b", on_change=_pick, args=("ser_b", "ser_a"))
     series = st.session_state["series"]
     st.markdown("<div class='sb-sep'></div>", unsafe_allow_html=True)
     st.radio("Year basis", ["Crop year", "Calendar year"], horizontal=True, key="basis", on_change=_to_dash)
