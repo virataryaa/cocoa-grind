@@ -103,7 +103,10 @@ div[role="radiogroup"] label:has(input:checked) div[data-testid="stMarkdownConta
 [data-testid="stSidebar"] [data-testid="stWidgetLabel"] { margin-top: 6px; }
 .sb-sep { border-top: 1px solid #dfe3ee; margin: 12px 0 2px; }
 .sb-tab { font-size: 12px; color: #5a6688; border-collapse: collapse; width: 100%; }
-.sb-tab td { padding: 2px 4px; } .sb-tab td:last-child { text-align: right; color: #0a2463; }
+.sb-tab th { font-size: 10px; color: #7a86a8; font-weight: 600; text-align: right; padding: 2px 4px; }
+.sb-tab td { padding: 2px 4px; text-align: right; color: #0a2463; border-bottom: 1px solid #e3e7f0; white-space: nowrap; }
+.sb-tab td:first-child { text-align: left; color: #5a6688; }
+.sb-tab tr.sel td { background: #e6e9f2; }
 .sb-tab td.up { color: #1f9d6f !important; } .sb-tab td.dn { color: #c94a4a !important; }
 .sb-label { font-size: 10.5px; color: #0a2463; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; line-height: 1.5; padding: 10px 0 2px 2px; }
 [data-testid="stHorizontalBlock"] { margin-bottom: 0.2rem; }
@@ -118,9 +121,9 @@ div[role="radiogroup"] label:has(input:checked) div[data-testid="stMarkdownConta
 .st-key-hero div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] p { color: #c9d3ea !important; font-size: 13px !important; }
 .st-key-hero div[role="radiogroup"] label:has(input:checked) { background: #ffffff !important; }
 .st-key-hero div[role="radiogroup"] label:has(input:checked) div[data-testid="stMarkdownContainer"] p { color: #0a2463 !important; font-weight: 700; }
-.dtab.w { width: auto; font-size: 11.5px; margin: 0 auto; }
-.dtab.w td { padding: 2px 9px; }
-.dtab.w th { padding: 3px 9px; }
+.dtab.w { width: auto; font-size: 12.5px; margin: 0 auto; }
+.dtab.w td { padding: 3px 13px; }
+.dtab.w th { padding: 4px 13px; }
 .dtab td.up { color: #1f9d6f; font-weight: 600; } .dtab td.dn { color: #c94a4a; font-weight: 600; }
 .dtab tr.st td { background: #f4f6fb; font-style: italic; color: #4a5578; }
 .dtab tr.st0 td { border-top: 1.5px solid #c9d0e2; }
@@ -135,12 +138,10 @@ div[role="radiogroup"] label:has(input:checked) div[data-testid="stMarkdownConta
 .dtab td, .dtab td.dt, .dtab th { text-align: center !important; }
 .st-key-seasmode { display: flex; align-items: flex-end; }
 .st-key-seasmode div[role="radiogroup"] { margin-left: auto; }
-.st-key-pagenav div[role="radiogroup"] { background: #fbeee4 !important; width: 100%; }
-.st-key-pagenav div[role="radiogroup"] label { flex: 1; justify-content: center; padding: 6px 10px !important; }
-.st-key-pagenav div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] p { font-size: 13px !important; font-weight: 600; }
-.st-key-pagenav div[role="radiogroup"] label:last-of-type div[data-testid="stMarkdownContainer"] p { color: #b4500f !important; font-weight: 700; }
-.st-key-pagenav div[role="radiogroup"] label:last-of-type:has(input:checked) { background: #b4500f !important; }
-.st-key-pagenav div[role="radiogroup"] label:last-of-type:has(input:checked) div[data-testid="stMarkdownContainer"] p { color: #ffffff !important; }
+.st-key-pagenav button { width: 100%; border-radius: 999px; border: 1.5px solid #b4500f !important; font-weight: 700; }
+.st-key-pagenav [data-testid="stBaseButton-secondary"] { background: #fbeee4 !important; color: #b4500f !important; }
+.st-key-pagenav [data-testid="stBaseButton-primary"] { background: #b4500f !important; color: #ffffff !important; }
+.st-key-pagenav button p { font-size: 14px !important; font-weight: 700; }
 </style>
 """,
     unsafe_allow_html=True,
@@ -489,7 +490,7 @@ def dashboard(d, series, n_years, k, crop):
         if mode == "Bands":
             seasonality_bands(mat, series, n_years, 300)
         else:
-            seasonality_chart(mat, series, n_years, 300)
+            seasonality_chart(mat, series, SHOW_YEARS, 300)
     with r1[2], st.container(border=True):
         card_head(f"YTD (Q1 to Q{k})")
         ytd_chart(mat, k, series, 320, show)
@@ -768,13 +769,19 @@ def render_history():
 # ---------------------------------------------------------------------------------------------
 df = load()                                                    # crop-year quarters, as stored (Entry works on this)
 TITLES = {"Total": "All Reported Grind : ECA + CAA + NCA + IVC + BR"}
-for _k, _v in {"series": "Total", "basis": "Crop year", "yrs": "Last 7", "page": "Dashboard"}.items():
+for _k, _v in {"series": "Total", "basis": "Crop year", "page": "Dashboard"}.items():
     st.session_state.setdefault(_k, _v)
 
 with st.sidebar:                                               # all filters live here, as compact pill groups
     st.markdown("<div class='sb-title'>Cocoa Grind</div>", unsafe_allow_html=True)
+    def _to_dash():
+        st.session_state["page"] = "Dashboard"
+
     with st.container(key="pagenav"):                          # Entry sits on its own, top of the pane
-        page = st.radio("Page", ["Dashboard", "Entry"], horizontal=True, label_visibility="collapsed", key="page")
+        if st.button("Entry", type="primary" if st.session_state["page"] == "Entry" else "secondary", key="entry_btn"):
+            st.session_state["page"] = "Dashboard" if st.session_state["page"] == "Entry" else "Entry"
+            st.rerun()
+    page = st.session_state["page"]
     st.markdown("<div class='sb-sep'></div>", unsafe_allow_html=True)
     grp_a = ["Total"] + ORIGINS
     grp_b = EXTRA + ["CAA ex-Malaysia", "ECA ex-German"]
@@ -784,26 +791,31 @@ with st.sidebar:                                               # all filters liv
     def _pick(src, other):                                     # the two groups act as one selector
         st.session_state["series"] = st.session_state[src]
         st.session_state[other] = None
+        _to_dash()
 
     st.radio("Total & origins", grp_a, horizontal=True, key="ser_a", on_change=_pick, args=("ser_a", "ser_b"))
     st.radio("Sub-regions", grp_b, horizontal=True, key="ser_b", on_change=_pick, args=("ser_b", "ser_a"))
     series = st.session_state["series"]
     st.markdown("<div class='sb-sep'></div>", unsafe_allow_html=True)
-    st.radio("Year basis", ["Crop year", "Calendar year"], horizontal=True, key="basis")
+    st.radio("Year basis", ["Crop year", "Calendar year"], horizontal=True, key="basis", on_change=_to_dash)
     dv = view(df, st.session_state["basis"])
     mat_s = matrix(dv, series)
     last = dv[dv[series].notna()].iloc[-1]
     if st.session_state.get("qsel") not in ("Q1", "Q2", "Q3", "Q4"):
         st.session_state["qsel"] = f"Q{int(last.q) if str(last.crop_year) == str(mat_s.index[-1]) else 4}"
-    st.radio("Years shown", ["Last 5", "Last 7", "All"], horizontal=True, key="yrs")
-    st.radio("Quarter (YTD and bars)", ["Q1", "Q2", "Q3", "Q4"], horizontal=True, key="qsel")
-    ly = dv[(dv.cy0 == last.cy0 - 1) & (dv.q == last.q)]
-    yy = last[series] / ly[series].iloc[0] - 1 if len(ly) and pd.notna(ly[series].iloc[0]) else None
-    st.markdown("<div class='sb-sep'></div><div class='sb-label'>Latest</div>"
-                f"<table class='sb-tab'><tr><td>{series}</td><td><b>{fmt(last[series])}</b></td></tr>"
-                f"<tr><td>Quarter</td><td><b>{last.label}</b></td></tr>"
-                + (f"<tr><td>YoY</td><td class='{'up' if yy >= 0 else 'dn'}'><b>{yy:+.1%}</b></td></tr>" if yy is not None else "")
-                + "</table>", unsafe_allow_html=True)
+    st.radio("Quarter (YTD and bars)", ["Q1", "Q2", "Q3", "Q4"], horizontal=True, key="qsel", on_change=_to_dash)
+    cal = view(df, "Calendar year")                            # calendar quarters keep the side table simple
+    rows = ""
+    for c in ["Total"] + ORIGINS + EXTRA:
+        r = cal[cal[c].notna()].iloc[-1]
+        ly = cal[(cal.cy0 == r.cy0 - 1) & (cal.q == r.q)][c]
+        yy = r[c] / ly.iloc[0] - 1 if len(ly) and pd.notna(ly.iloc[0]) else None
+        yt = f"<td class='{'up' if yy >= 0 else 'dn'}'>{yy:+.1%}</td>" if yy is not None else "<td>-</td>"
+        rows += (f"<tr{' class=sel' if c == series else ''}><td>{c}</td><td>Q{int(r.q)} {str(r.cy0)[2:]}</td>"
+                 f"<td><b>{fmt(r[c])}</b></td>{yt}</tr>")
+    st.markdown("<div class='sb-sep'></div><div class='sb-label'>Latest (calendar quarter)</div>"
+                "<table class='sb-tab'><tr><th></th><th>Qtr</th><th>Tonnes</th><th>YoY</th></tr>" + rows + "</table>",
+                unsafe_allow_html=True)
 
 with st.container(key="hero"):                                 # navy header: title left, page tabs right
     t_col = st.container()
@@ -832,5 +844,4 @@ if page == "Entry":
                 st.markdown("<div class='card-desc'>Add github_token in Secrets to see saves.</div>", unsafe_allow_html=True)
             st.download_button("Download CSV", df[["crop_year", "quarter", *COLS]].to_csv(index=False), "cocoa_grind.csv", "text/csv")
 else:
-    n_years = {"Last 5": 5, "Last 7": 7, "All": 99}[st.session_state["yrs"]]
-    dashboard(dv, series, n_years, int(st.session_state["qsel"][1]), st.session_state["basis"] == "Crop year")
+    dashboard(dv, series, 99, int(st.session_state["qsel"][1]), st.session_state["basis"] == "Crop year")
