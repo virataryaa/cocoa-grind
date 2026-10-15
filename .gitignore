@@ -1,3 +1,4 @@
 *.xlsx
+!Raw/*.xlsx
 __pycache__/
 secrets.toml

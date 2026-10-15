@@ -84,6 +84,21 @@ div[role="radiogroup"] label:has(input:checked) div[data-testid="stMarkdownConta
 .dtab td.ts { font-size: 10.5px; font-style: italic; color: #7a86a8; text-align: left; }
 .dtab tr.yr td { border-top: 1.5px solid #c9d0e2; }
 .tab-note { font-size: 11px; color: #7a86a8; margin-top: 4px; }
+.stTabs [data-baseweb="tab-list"] { background: #eef0f6; padding: 4px; border-radius: 999px; gap: 4px; display: inline-flex; }
+.stTabs [data-baseweb="tab"] { background: transparent !important; color: #5a6688 !important; border-radius: 999px !important;
+                               padding: 6px 18px !important; font-weight: 600; border: none !important; }
+.stTabs [aria-selected="true"] { background: #0a2463 !important; color: #ffffff !important; }
+.stTabs [data-baseweb="tab-highlight"], .stTabs [data-baseweb="tab-border"] { display: none !important; }
+[data-testid="stSidebarUserContent"] { padding-top: 1rem !important; }
+[data-testid="stSidebar"] div[role="radiogroup"] { display: flex; flex-direction: column; align-items: stretch; width: 100%; border-radius: 22px; padding: 5px; gap: 3px; }
+[data-testid="stSidebar"] div[role="radiogroup"] label { padding: 8px 18px !important; }
+[data-testid="stSidebar"] div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] p { font-size: 15px !important; }
+.sb-label { font-size: 11px; color: #7a86a8; text-transform: uppercase; letter-spacing: .06em; margin: 14px 0 4px; }
+.kpi { background: #ffffff; border: 1px solid #e3e7f0; border-radius: 12px; padding: 12px 16px; box-shadow: 0 1px 3px rgba(10,36,99,0.06); }
+.kpi .l { font-size: 11px; color: #7a86a8; text-transform: uppercase; letter-spacing: .06em; }
+.kpi .v { font-size: 1.6rem; font-weight: 700; color: #0a2463; line-height: 1.25; }
+.kpi .s { font-size: 12px; color: #5a6688; }
+.kpi .up { color: #1f9d6f; font-weight: 600; } .kpi .dn { color: #c94a4a; font-weight: 600; }
 </style>
 """,
     unsafe_allow_html=True,
@@ -202,18 +217,19 @@ def area_chart(d, series):
     st.plotly_chart(fig, width="stretch", key=f"area_{series}")
 
 
-def seasonality_chart(mat, series):
+def seasonality_chart(mat, series, n_years=SHOW_YEARS):
     fig = go.Figure()
-    shown = list(mat.index[-SHOW_YEARS:])
-    for i, cy in enumerate(mat.index):
-        vis = True if cy in shown else "legendonly"
+    shown = list(mat.index[-n_years:])
+    n = len(YEAR_COLORS)
+    for cy in mat.index:
         k = shown.index(cy) if cy in shown else None
-        col = YEAR_COLORS[len(YEAR_COLORS) - len(shown) + k] if k is not None else GREY
-        fig.add_scatter(x=["Q1", "Q2", "Q3", "Q4"], y=mat.loc[cy].values, name=cy, mode="lines+markers", visible=vis,
-                        connectgaps=False, line=dict(color=col, width=3.5 if cy == mat.index[-1] else 1.8),
-                        marker=dict(size=5))
-    chart_layout(fig, height=300)
+        col = YEAR_COLORS[(n - 1) - (len(shown) - 1 - k) % n] if k is not None else GREY
+        fig.add_scatter(x=["Q1", "Q2", "Q3", "Q4"], y=mat.loc[cy].values, name=cy, mode="lines+markers",
+                        visible=True if k is not None else "legendonly", connectgaps=False,
+                        line=dict(color=col, width=3.5 if cy == mat.index[-1] else 1.8), marker=dict(size=5))
+    chart_layout(fig, height=340)
     st.plotly_chart(fig, width="stretch", key=f"seas_{series}")
+
 
 
 def q_table(mat):
@@ -268,47 +284,125 @@ def quarter_bars(mat, k, series):
     st.plotly_chart(fig, width="stretch", key=f"qbar_{series}_{k}")
 
 
-def render_series(d, series):
+def kpi(label, value, sub="", delta=None):
+    cls = "" if delta is None else ("up" if delta >= 0 else "dn")
+    return (f"<div class='kpi'><div class='l'>{label}</div><div class='v'>{value}</div>"
+            f"<div class='s'><span class='{cls}'>{sub}</span></div></div>")
+
+
+def share_chart(d, series):
+    parent = PARENT[series]
+    rows = d[d[series].notna() & d[parent].notna()]
+    fig = go.Figure(go.Scatter(x=rows["label"], y=rows[series] / rows[parent], mode="lines", line=dict(color=COLOR[series], width=2.5)))
+    chart_layout(fig, height=260, showlegend=False, xaxis=dict(tickangle=-90, tickfont=dict(size=9)),
+                 yaxis=dict(tickformat=".0%", hoverformat=".1%"))
+    st.plotly_chart(fig, width="stretch", key=f"share_{series}")
+
+
+def overview(d, n_years):
+    t_snap, t_mix, t_seas = st.tabs(["Snapshot", "Mix", "Seasonality"])
+    mat = matrix(d, "Total")
+    last = d[d.Total.notna()].iloc[-1]
+    with t_snap:
+        i = d.index[d.label == last.label][0]
+        qq = last.Total / d.Total[i - 1] - 1 if i > 0 else None
+        ly = d[(d.cy0 == last.cy0 - 1) & (d.q == last.q)]
+        yy = last.Total / ly.Total.iloc[0] - 1 if len(ly) and pd.notna(ly.Total.iloc[0]) else None
+        cols_q = list(range(1, int(last.q) + 1))
+        cy_now, cy_ly = f"{last.cy0}/{last.cy0 + 1}", f"{last.cy0 - 1}/{last.cy0}"
+        ytd = mat.loc[cy_now, cols_q].sum() if mat.loc[cy_now, cols_q].notna().all() else None
+        ytd_ly = mat.loc[cy_ly, cols_q].sum() if cy_ly in mat.index and mat.loc[cy_ly, cols_q].notna().all() else None
+        yt = ytd / ytd_ly - 1 if ytd and ytd_ly else None
+        c = st.columns(4, gap="medium")
+        c[0].markdown(kpi("Latest quarter", fmt(last.Total), last.label), unsafe_allow_html=True)
+        c[1].markdown(kpi("YoY", pct(yy), "vs same quarter last year", yy), unsafe_allow_html=True)
+        c[2].markdown(kpi("QoQ", pct(qq), "vs previous quarter", qq), unsafe_allow_html=True)
+        c[3].markdown(kpi(f"YTD (Q1 to Q{int(last.q)})", pct(yt), f"{fmt(ytd)} t", yt), unsafe_allow_html=True)
+        st.write("")
+        left, right = st.columns([1.5, 2.1], gap="medium")
+        with left, st.container(border=True):
+            card_head("Quarterly grind", "Metric tonnes, Oct-Sep crop years.", "Total")
+            quarter_table(d, "Total")
+        with right, st.container(border=True):
+            card_head("All reported grind by origin", "Stacked by origin.")
+            area_chart(d, "Total")
+    with t_mix:
+        rows = d[d.Total.notna()]
+        m1, m2 = st.columns(2, gap="medium")
+        with m1, st.container(border=True):
+            card_head("Origin share of Total", "Each origin as a share of all reported grind.")
+            fig = go.Figure()
+            for o in ORIGINS:
+                fig.add_scatter(x=rows["label"], y=rows[o] / rows.Total, name=o, stackgroup="one", mode="lines",
+                                line=dict(width=0.5, color=COLOR[o]), fillcolor=COLOR[o])
+            chart_layout(fig, height=380, xaxis=dict(tickangle=-90, tickfont=dict(size=9)),
+                         yaxis=dict(tickformat=".0%", hoverformat=".1%"),
+                         legend=dict(orientation="h", x=0, y=1.08, yanchor="bottom", font=dict(size=11), bgcolor="rgba(0,0,0,0)"))
+            st.plotly_chart(fig, width="stretch", key="mix_share")
+        with m2, st.container(border=True):
+            card_head("CAA / ECA", "Asian grind relative to European grind.")
+            fig = go.Figure(go.Scatter(x=rows["label"], y=rows.CAA / rows.ECA, mode="lines", line=dict(color=TEAL, width=2.5)))
+            chart_layout(fig, height=380, showlegend=False, xaxis=dict(tickangle=-90, tickfont=dict(size=9)),
+                         yaxis=dict(tickformat=".0%", hoverformat=".1%"))
+            st.plotly_chart(fig, width="stretch", key="mix_ratio")
+    with t_seas:
+        s1, s2 = st.columns([1.5, 1.2], gap="medium")
+        with s1, st.container(border=True):
+            card_head("Seasonality per quarter", "One line per crop year, click the legend to show older years.", "Total")
+            seasonality_chart(mat, "Total", n_years)
+        with s2, st.container(border=True):
+            card_head("Q1-Q4", "Quarter grind by crop year; Q1-Q4 only once all four quarters are in.")
+            q_table(mat)
+
+
+def series_view(d, series, n_years):
     mat = matrix(d, series)
-    last = d[d[series].notna()].iloc[-1]
-    left, right = st.columns([1.5, 2.1], gap="medium")
-    with left, st.container(border=True):
-        card_head("Quarterly grind", "Metric tonnes, Oct-Sep crop years.", series)
-        quarter_table(d, series)
-    with right:
-        with st.container(border=True):
-            card_head("All reported grind by origin" if series == "Total" else f"{series} grind by quarter",
-                      "Stacked by origin." if series == "Total" else "Bars, with a 4-quarter average line.")
-            area_chart(d, series)
-        with st.container(border=True):
-            card_head("Seasonality per quarter", "One line per crop year, click the legend to show older years.")
-            seasonality_chart(mat, series)
-    c1, c2, c3 = st.columns([1.35, 1, 1], gap="medium")
-    with c1, st.container(border=True):
-        card_head("Q1-Q4", "Quarter grind by crop year; Q1-Q4 only once all four quarters are in.")
-        q_table(mat)
-    with c2, st.container(border=True):
-        card_head("YoY change", "Vs the same quarter a year earlier.")
-        change_table(mat.pct_change(fill_method=None))
-    with c3, st.container(border=True):
-        card_head("QoQ change", "Vs the previous quarter.")
-        change_table(pd.DataFrame(qoq(mat), index=mat.index, columns=mat.columns))
-    qmax = int(last.q) if last.cy0 == int(mat.index[-1][:2]) else 4
-    hd = st.columns([3, 1.2], vertical_alignment="center")
-    hd[0].markdown(f"<div class='card-title'>YTD and single quarter across years <span class='pill'>{series}</span></div>",
-                   unsafe_allow_html=True)
-    if f"qsel_{series}" not in st.session_state:
-        st.session_state[f"qsel_{series}"] = f"Q{qmax}"
-    with hd[1], st.container(key="qsel"):
+    t_trend, t_seas, t_chg, t_ytd = st.tabs(["Trend", "Seasonality", "Changes", "YTD"])
+    with t_trend:
+        left, right = st.columns([1.5, 2.1] if series == "Total" else [1, 2.2], gap="medium")
+        with left, st.container(border=True):
+            card_head("Quarterly grind", "Metric tonnes, Oct-Sep crop years.", series)
+            quarter_table(d, series)
+        with right:
+            with st.container(border=True):
+                card_head("All reported grind by origin" if series == "Total" else f"{series} grind by quarter",
+                          "Stacked by origin." if series == "Total" else "Bars, with a 4-quarter average line.")
+                area_chart(d, series)
+            if series in PARENT:
+                with st.container(border=True):
+                    card_head(f"{series} as % of {PARENT[series]}", "Share over time.")
+                    share_chart(d, series)
+    with t_seas:
+        s1, s2 = st.columns([1.5, 1.2], gap="medium")
+        with s1, st.container(border=True):
+            card_head("Seasonality per quarter", "One line per crop year, click the legend to show older years.", series)
+            seasonality_chart(mat, series, n_years)
+        with s2, st.container(border=True):
+            card_head("Q1-Q4", "Quarter grind by crop year; Q1-Q4 only once all four quarters are in.")
+            q_table(mat)
+    with t_chg:
+        c2, c3 = st.columns(2, gap="medium")
+        with c2, st.container(border=True):
+            card_head("YoY change", "Vs the same quarter a year earlier.", series)
+            change_table(mat.pct_change(fill_method=None))
+        with c3, st.container(border=True):
+            card_head("QoQ change", "Vs the previous quarter.", series)
+            change_table(pd.DataFrame(qoq(mat), index=mat.index, columns=mat.columns))
+    with t_ytd:
+        last = d[d[series].notna()].iloc[-1]
+        qmax = int(last.q) if last.cy0 == int(mat.index[-1][:2]) else 4
+        if f"qsel_{series}" not in st.session_state:
+            st.session_state[f"qsel_{series}"] = f"Q{qmax}"
         k = int(st.radio("Quarter", ["Q1", "Q2", "Q3", "Q4"], horizontal=True, label_visibility="collapsed",
                          key=f"qsel_{series}")[1])
-    y1, y2 = st.columns(2, gap="medium")
-    with y1, st.container(border=True):
-        card_head(f"YTD (Q1 to Q{k})", "Crop years with all quarters up to the chosen one.")
-        ytd_chart(mat, k, series)
-    with y2, st.container(border=True):
-        card_head(f"Q{k} across years", "Latest year highlighted.")
-        quarter_bars(mat, k, series)
+        y1, y2 = st.columns(2, gap="medium")
+        with y1, st.container(border=True):
+            card_head(f"YTD (Q1 to Q{k})", "Crop years with all quarters up to the chosen one.", series)
+            ytd_chart(mat, k, series)
+        with y2, st.container(border=True):
+            card_head(f"Q{k} across years", "Latest year highlighted.", series)
+            quarter_bars(mat, k, series)
+
 
 
 # ---------------------------------------------------------------------------------------------
@@ -458,42 +552,39 @@ def save_changes(changes, d):
             st.error(f"GitHub save failed: {ex}")
             return
     st.session_state.pop("pending_grid", None)
-    st.session_state.pop(f"entry_grid_{changes_cy(changes)}", None)
+    st.session_state.pop("entry_grid", None)
     st.session_state["flash"] = f"Saved {len(changes)} quarter(s)."
     st.rerun()
 
 
-def changes_cy(changes):
-    return next(iter(changes))[0].replace("/", "_")
-
-
-def render_entry(d, cy):
+def render_entry(d):
     if st.session_state.get("flash"):
         st.toast(st.session_state.pop("flash"))
     editable = entry_enabled()
     card_head("Entry", "Quarter grind in tonnes. ECA, CAA, NCA, IVC, BR make the Total; Malaysia is inside CAA, German inside ECA. "
-              + ("Click a cell, type, Save." if editable else "Read-only: add github_token in Secrets."), cy)
-    sub = d[d.crop_year == cy].set_index("q")
-    g = pd.DataFrame(index=["Q1", "Q2", "Q3", "Q4"])
+              + ("Click a cell, type, Save." if editable else "Read-only: add github_token in Secrets."))
+    y = int(d.cy0.max())
+    rows = [(f"{c:02d}/{c + 1:02d}", q) for c in (y - 1, y, y + 1) for q in (1, 2, 3, 4)]     # latest two crop years + the next one
+    have = d.set_index(["crop_year", "q"])
+    g = pd.DataFrame(index=[f"Q{q} | {cy}" for cy, q in rows])
     for c in COLS:
-        g[c] = [fmt(sub.loc[q, c]) if q in sub.index and pd.notna(sub.loc[q, c]) else "" for q in (1, 2, 3, 4)]
+        g[c] = [fmt(have.loc[(cy, q), c]) if (cy, q) in have.index and pd.notna(have.loc[(cy, q), c]) else "" for cy, q in rows]
     vals = g[ORIGINS].apply(lambda col: col.map(parse_num))
-    tot = [fmt(r.sum()) if r.notna().all() else "" for _, r in vals.iterrows()]
-    g.insert(len(ORIGINS), "Total", tot)
+    g.insert(len(ORIGINS), "Total", [fmt(r.sum()) if r.notna().all() else "" for _, r in vals.iterrows()])
     cfg = {c: st.column_config.TextColumn(c, alignment="right", width=88 if c in EXTRA else 76) for c in g.columns}
     cfg["Total"] = st.column_config.TextColumn("Total", alignment="right", width=82, disabled=True)
-    cfg["_index"] = st.column_config.TextColumn("Qtr", width=48)
-    key = f"entry_grid_{cy.replace('/', '_')}"
+    cfg["_index"] = st.column_config.TextColumn("Quarter", width=82)
+    key = "entry_grid"
     shown = g.style.set_properties(subset=["Total"], **{"background-color": "#e9ecf2", "font-weight": "600"})
     after = st.data_editor(shown, column_config=cfg, disabled=not editable, width="content", row_height=30,
-                           height=4 * 30 + 52, key=key)
+                           height=len(g) * 30 + 52, key=key)
     changes = {}
     try:
         for c in COLS:
             for i, (a, b) in enumerate(zip(g[c], after[c])):
                 a, b = parse_num(a), parse_num(b)
                 if a != b:
-                    changes.setdefault((cy, i + 1), {})[c] = b
+                    changes.setdefault(rows[i], {})[c] = b
     except ValueError:
         st.error("Numbers only (commas are fine).")
         return
@@ -522,6 +613,7 @@ def render_entry(d, cy):
         if cc[2].button("Cancel", width="stretch", key="grid_cancel"):
             st.session_state.pop("pending_grid", None)
             st.rerun()
+
 
 
 def render_history():
@@ -555,45 +647,52 @@ df = load()
 latest = df[df.Total.notna()].iloc[-1]
 prev_y = df[(df.cy0 == latest.cy0 - 1) & (df.q == latest.q)]
 
+SECTIONS = {"Overview": ["Total"], "Origins": ["Total"] + ORIGINS,
+            "Sub-regions": EXTRA + ["CAA ex-Malaysia", "ECA ex-German"]}
 with st.sidebar:
     st.markdown("<div class='sb-title'>Cocoa Grind</div>", unsafe_allow_html=True)
     st.markdown("<div class='sb-caption'>Quarterly cocoa grindings by origin: ECA, CAA, NCA, IVC (Gepex), Brazil, "
                 "plus Malaysia (inside CAA) and Germany (inside ECA). Tonnes, Oct-Sep crop years.</div>", unsafe_allow_html=True)
-    rows = [("Latest quarter", latest.label, None), ("Total", fmt(latest.Total), None)]
+    st.markdown("<div class='sb-label'>Section</div>", unsafe_allow_html=True)
+    section = st.radio("Section", ["Overview", "Origins", "Sub-regions", "Data"], label_visibility="collapsed", key="section")
+    series = "Total"
+    if section in SECTIONS and len(SECTIONS[section]) > 1:
+        st.markdown("<div class='sb-label'>Series</div>", unsafe_allow_html=True)
+        series = st.radio("Series", SECTIONS[section], label_visibility="collapsed", key=f"series_{section}")
+    if section != "Data":
+        st.markdown("<div class='sb-label'>Years shown</div>", unsafe_allow_html=True)
+        st.radio("Years shown", ["Last 5", "Last 7", "All"], index=1, horizontal=True, label_visibility="collapsed", key="yrs")
+    n_years = {"Last 5": 5, "Last 7": 7, "All": 99}.get(st.session_state.get("yrs", "Last 7"), 7)
+    st.markdown("<div class='sb-label'>Latest</div>", unsafe_allow_html=True)
+    stats = [("Latest quarter", latest.label, None), ("Total", fmt(latest.Total), None)]
     if len(prev_y) and pd.notna(prev_y.Total.iloc[0]):
-        rows.append(("YoY", pct(latest.Total / prev_y.Total.iloc[0] - 1), f"vs {prev_y.label.iloc[0]}"))
-    rows.append(("CAA / ECA", pct(latest.CAA / latest.ECA, 0), None))
+        stats.append(("YoY", pct(latest.Total / prev_y.Total.iloc[0] - 1), f"vs {prev_y.label.iloc[0]}"))
+    stats.append(("CAA / ECA", pct(latest.CAA / latest.ECA, 0), None))
     html = "<div class='filter-stat'>" + "".join(
-        f"{a}: <b>{b}</b>" + (f" <span style='color:#7a86a8;'>({c})</span>" if c else "") + "<br>" for a, b, c in rows) + "</div>"
+        f"{a}: <b>{b}</b>" + (f" <span style='color:#7a86a8;'>({c})</span>" if c else "") + "<br>" for a, b, c in stats) + "</div>"
     st.markdown(html, unsafe_allow_html=True)
 
-CYS = sorted(set(df.crop_year) | {f"{df.cy0.max() + 1}/{df.cy0.max() + 2}"}, key=lambda s: int(s[:2]), reverse=True)
-if st.session_state.get("cy_sel") not in CYS:
-    st.session_state["cy_sel"] = CYS[1] if len(CYS) > 1 else CYS[0]            # latest crop year with data
+title = {"Overview": "Overview", "Data": "Data"}.get(section, f"{section}: {series}")
+st.markdown(f"<div class='page-title'>Cocoa grind - {title} <span class='pill'>{latest.label}</span></div>", unsafe_allow_html=True)
 
-PAGES = ["Entry", "Total", "ECA", "CAA", "NCA", "IVC", "BR", "Malaysia", "German"]
-st.markdown(f"<div class='page-title'>Cocoa grind <span class='pill'>{latest.label}</span></div>", unsafe_allow_html=True)
-nav_l, nav_r = st.columns([4.2, 1.2], vertical_alignment="center")
-with nav_l, st.container(key="nav"):
-    page = st.radio("Page", PAGES, horizontal=True, label_visibility="collapsed", key="page")
-with nav_r, st.container(key="cysel"):
-    if page == "Entry":
-        st.selectbox("Crop year", CYS, key="cy_sel", label_visibility="collapsed", format_func=lambda s: f"Crop year  |  {s}")
-
-if page == "Entry":
-    le, ri = st.columns([1.6, 1.15], gap="medium")
-    with le, st.container(border=True):
-        render_entry(df, st.session_state["cy_sel"])
-    with ri, st.container(border=True):
-        card_head("Quarterly grind", "Total and origins.", "Total")
-        quarter_table(df, "Total")
-    if entry_enabled():
-        with st.expander("Save history", expanded=False):
-            render_history()
+if section == "Overview":
+    overview(df, n_years)
+elif section == "Data":
+    t_entry, t_hist = st.tabs(["Entry", "History"])
+    with t_entry:
+        le, ri = st.columns([1.6, 1.15], gap="medium")
+        with le, st.container(border=True):
+            render_entry(df)
+        with ri, st.container(border=True):
+            card_head("Quarterly grind", "Total and origins.", "Total")
+            quarter_table(df, "Total")
+    with t_hist:
+        with st.container(border=True):
+            card_head("Save history", "Dashboard entries and local pushes, newest first.")
+            if entry_enabled():
+                render_history()
+            else:
+                st.markdown("<div class='card-desc'>Add github_token in Secrets to see saves.</div>", unsafe_allow_html=True)
+            st.download_button("Download CSV", df[["crop_year", "quarter", *COLS]].to_csv(index=False), "cocoa_grind.csv", "text/csv")
 else:
-    series = page
-    if page == "CAA":
-        series = st.radio("Basis", ["CAA", "CAA ex-Malaysia"], horizontal=True, label_visibility="collapsed", key="basis_caa")
-    elif page == "ECA":
-        series = st.radio("Basis", ["ECA", "ECA ex-German"], horizontal=True, label_visibility="collapsed", key="basis_eca")
-    render_series(df, series)
+    series_view(df, series, n_years)
