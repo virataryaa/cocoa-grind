@@ -498,6 +498,9 @@ def rolling_chart(d, series, h=270):
     st.plotly_chart(fig, width="stretch", key=f"roll_{series}")
 
 
+LIGHT = {"ECA": "#a9b9dc", "CAA": "#a6d6de", "NCA": "#f1d29c", "IVC": "#acdcc4", "BR": "#f1b3b3",
+         "Malaysia": "#cdbbe3", "CAA ex-Malaysia": "#a6d6de", "German": "#c3cadb", "ECA ex-German": "#a9b9dc"}
+SHORT = {"CAA ex-Malaysia": "ex-MY", "ECA ex-German": "ex-DE", "Malaysia": "MY", "German": "DE"}
 CONTRIB = {"Total": ORIGINS, "CAA": ["Malaysia", "CAA ex-Malaysia"], "ECA": ["German", "ECA ex-German"]}
 
 
@@ -511,13 +514,15 @@ def contribution_chart(d, series, k, show, h=270):
         m = matrix(d, p)[k].reindex(tot.index)
         c = (m - m.shift(1)) / prev
         c = c[c.index.isin(show)]
-        fig.add_bar(x=c.index, y=c.values, name=p, marker_color=COLOR.get(p, GREY) if p in COLOR else GREY,
-                    hovertemplate=f"{p}: %{{y:+.1%}}<extra></extra>")
+        fig.add_bar(x=c.index, y=c.values, name=p, marker=dict(color=LIGHT.get(p, "#d5dae6"), line=dict(color="#ffffff", width=1)),
+                    text=[SHORT.get(p, p) if pd.notna(v) and abs(v) >= 0.009 else "" for v in c.values],
+                    textposition="inside", insidetextanchor="middle", textangle=0,
+                    textfont=dict(size=9, color="#1a1a2e"), hovertemplate=f"{p}: %{{y:+.1%}}<extra></extra>")
     yy = (tot / prev - 1)[lambda s: s.index.isin(show)]
     fig.add_scatter(x=yy.index, y=yy.values, name=f"{series} YoY", mode="markers+text", marker=dict(color="#1a1a2e", size=8, symbol="diamond"),
                     text=[f"{v:+.1%}" if pd.notna(v) else "" for v in yy.values], textposition="top center",
                     textfont=dict(size=10, color="#1a1a2e"), hovertemplate=f"{series} YoY: %{{y:+.1%}}<extra></extra>")
-    chart_layout(fig, height=h, barmode="relative", hovermode="x unified", yaxis=dict(tickformat=".0%", hoverformat="+.1%"),
+    chart_layout(fig, height=h, barmode="relative", hovermode="x unified", bargap=0.2, uniformtext=dict(minsize=7, mode="hide"), yaxis=dict(tickformat=".0%", hoverformat="+.1%"),
                  legend=dict(orientation="h", x=0, y=1.12, yanchor="bottom", font=dict(size=10), bgcolor="rgba(0,0,0,0)"))
     st.plotly_chart(fig, width="stretch", key=f"contrib_{series}_{k}")
 
