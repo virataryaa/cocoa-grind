@@ -377,7 +377,7 @@ def yoy_bars(vals, key, h=250, show=None):
     fig = go.Figure(go.Bar(x=vals.index, y=vals.values, text=text, textposition="outside", cliponaxis=False,
                            marker_color=[NAVY if cy == last else "#c5cce0" for cy in vals.index],
                            textfont=dict(size=11, color="#4a5578"), hovertemplate="%{x}: %{y:,.0f}<extra></extra>"))
-    chart_layout(fig, height=h, showlegend=False, hovermode="closest", bargap=0.35,
+    chart_layout(fig, height=h, showlegend=False, hovermode="closest", bargap=0.3, uniformtext=dict(minsize=9, mode="show"),
                  yaxis=dict(range=[0, vals.max() * 1.22]), margin=dict(t=30, b=10, l=10, r=10))
     st.plotly_chart(fig, width="stretch", key=key)
 
@@ -425,7 +425,7 @@ def full_year_chart(mat, series, show, h=255):
                                  color=NAVY, thickness=1.8, width=8),
                     name="Projection", hovertemplate=f"Projection: {fmt(p['proj'])}<br>10-90%: {fmt(p['lo'])} - {fmt(p['hi'])}<extra></extra>")
         top = max(top, p["hi"])
-    chart_layout(fig, height=h, showlegend=False, hovermode="closest", barmode="stack", bargap=0.35,
+    chart_layout(fig, height=h, showlegend=False, hovermode="closest", barmode="stack", bargap=0.3, uniformtext=dict(minsize=9, mode="show"),
                  yaxis=dict(range=[0, top * 1.15]), margin=dict(t=30, b=10, l=10, r=10))
     st.plotly_chart(fig, width="stretch", key=f"fy_{series}")
     return p
@@ -778,7 +778,8 @@ with st.sidebar:                                               # all filters liv
         st.session_state["page"] = "Dashboard"
 
     with st.container(key="pagenav"):                          # Entry sits on its own, top of the pane
-        if st.button("Entry", type="primary" if st.session_state["page"] == "Entry" else "secondary", key="entry_btn"):
+        if st.button("Entry", type="primary" if st.session_state["page"] == "Entry" else "secondary", key="entry_btn",
+                     width="stretch"):
             st.session_state["page"] = "Dashboard" if st.session_state["page"] == "Entry" else "Entry"
             st.rerun()
     page = st.session_state["page"]
