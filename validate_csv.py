@@ -38,8 +38,8 @@ else:
             problems.append(f"{c} {d.loc[i, 'quarter']} | {d.loc[i, 'crop_year']}: {s[i]:,.0f} moved >25% vs previous quarter")
     origins = d[["ECA", "CAA", "NCA", "IVC", "BR"]]
     part = origins.notna().any(axis=1) & ~origins.notna().all(axis=1)
-    for i in d.index[part]:
-        problems.append(f"{d.loc[i, 'quarter']} | {d.loc[i, 'crop_year']}: only some of ECA/CAA/NCA/IVC/BR filled (Total needs all five)")
+    for i in d.index[part]:                                 # normal in release week (origins report on different days)
+        print(f"Note: {d.loc[i, 'quarter']} | {d.loc[i, 'crop_year']} has only some of ECA/CAA/NCA/IVC/BR - Total shows once all five are in")
 
 if problems:
     print("PROBLEMS FOUND:")

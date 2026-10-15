@@ -1,4 +1,5 @@
 import base64
+import html
 import io
 from pathlib import Path
 
@@ -58,23 +59,11 @@ div[role="radiogroup"] label:has(input:checked) div[data-testid="stMarkdownConta
 [data-testid="stVerticalBlockBorderWrapper"]:has(> div > [data-testid="stVerticalBlock"]) {
     background: #ffffff; border: 1px solid #e3e7f0 !important; border-radius: 12px;
     box-shadow: 0 1px 3px rgba(10,36,99,0.06); }
-.st-key-nav div[role="radiogroup"] label { padding: 7px 16px !important; }
-.st-key-nav div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] p { font-size: 14px !important; }
-.st-key-cysel, .st-key-qsel { display: flex; justify-content: flex-end; }
-.st-key-cysel [data-baseweb="select"] { min-width: 190px; max-width: 230px; margin-left: auto; }
-.st-key-cysel [data-baseweb="select"] > div { border-radius: 999px !important; border: 1.5px solid #0a2463 !important;
-    background: #ffffff !important; box-shadow: 0 1px 5px rgba(10,36,99,0.14); min-height: 40px; padding-left: 8px; }
-.st-key-cysel [data-baseweb="select"] div, .st-key-cysel [data-baseweb="select"] span { color: #0a2463 !important; font-weight: 600; }
-.st-key-cysel [data-baseweb="select"] svg { fill: #0a2463 !important; }
-.page-title { color: #0a2463; font-weight: 700; font-size: 1.25rem; margin: 0 0 6px 0; }
 .card-title { color: #0a2463; font-weight: 700; font-size: 1rem; margin-bottom: 2px; }
 .pill { display: inline-block; background: #e6e9f2; color: #0a2463; font-size: 11px; font-weight: 600;
         padding: 1px 8px; border-radius: 999px; margin-left: 6px; vertical-align: middle; }
 
 .sb-title { font-family: 'Fraunces', Georgia, serif; font-size: 1.5rem; font-weight: 600; color: #0a2463; margin-bottom: 16px; }
-.sb-caption { font-size: 11px; color: #7a86a8; margin-bottom: 16px; line-height: 1.4; }
-.filter-stat { font-size: 12px; color: #5a6688 !important; line-height: 1.7; margin-bottom: 14px; }
-.filter-stat b { color: #0a2463 !important; font-size: 13px; }
 
 .dtab { width: auto; border-collapse: collapse; font-size: 11px; line-height: 1.1; background: #ffffff; }
 .dtab th { text-align: center; padding: 2px 6px; font-weight: 600; white-space: nowrap; background: #0a2463; color: #ffffff; }
@@ -83,9 +72,6 @@ div[role="radiogroup"] label:has(input:checked) div[data-testid="stMarkdownConta
 .dtab td.b { font-weight: 700; }
 .dtab td.ts { font-size: 10.5px; font-style: italic; color: #7a86a8; text-align: left; }
 .dtab tr.yr td { border-top: 1.5px solid #c9d0e2; }
-.dtab-sm { font-size: 10px; }
-.dtab-sm th { padding: 2px 3px; }
-.dtab-sm td { padding: 1px 3px; }
 .tab-note { font-size: 11px; color: #7a86a8; margin-top: 4px; }
 .stTabs [data-baseweb="tab-list"] { background: #eef0f6; padding: 4px; border-radius: 999px; gap: 4px; display: inline-flex; }
 .stTabs [data-baseweb="tab"] { background: transparent !important; color: #5a6688 !important; border-radius: 999px !important;
@@ -107,7 +93,6 @@ div[role="radiogroup"] label:has(input:checked) div[data-testid="stMarkdownConta
 .sb-tab td { padding: 2px 4px; text-align: right; color: #0a2463; border-bottom: 1px solid #e3e7f0; white-space: nowrap; }
 .sb-tab td:first-child { text-align: left; color: #5a6688; }
 .sb-tab tr.sel td { background: #e6e9f2; }
-.sb-tab td.up { color: #1f9d6f !important; } .sb-tab td.dn { color: #c94a4a !important; }
 .sb-label { font-size: 10.5px; color: #0a2463; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; line-height: 1.5; padding: 10px 0 2px 2px; }
 [data-testid="stHorizontalBlock"] { margin-bottom: 0.2rem; }
 .st-key-hero { background: linear-gradient(135deg, #050f2c 0%, #0a1d4d 100%); border-radius: 14px;
@@ -115,12 +100,6 @@ div[role="radiogroup"] label:has(input:checked) div[data-testid="stMarkdownConta
 .hero-t { color: #ffffff; font-size: 20px; font-weight: 700; letter-spacing: .01em; line-height: 1.3; }
 .hero-u { color: #9fb0d6; font-size: 12px; font-weight: 500; margin-left: 12px; }
 .st-key-hero [data-testid="stHorizontalBlock"] { margin-bottom: 0 !important; }
-.st-key-hero [data-testid="stColumn"]:last-child { display: flex; justify-content: flex-end; }
-.st-key-hero div[role="radiogroup"] { background: rgba(255,255,255,.10) !important; }
-.st-key-hero div[role="radiogroup"] label { padding: 4px 14px !important; }
-.st-key-hero div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] p { color: #c9d3ea !important; font-size: 13px !important; }
-.st-key-hero div[role="radiogroup"] label:has(input:checked) { background: #ffffff !important; }
-.st-key-hero div[role="radiogroup"] label:has(input:checked) div[data-testid="stMarkdownContainer"] p { color: #0a2463 !important; font-weight: 700; }
 .dtab.w { width: auto; font-size: 12.5px; margin: 0 auto; }
 .dtab.w td { padding: 3px 13px; }
 .dtab.w th { padding: 4px 13px; }
@@ -129,12 +108,6 @@ div[role="radiogroup"] label:has(input:checked) div[data-testid="stMarkdownConta
 .dtab tr.st0 td { border-top: 1.5px solid #c9d0e2; }
 .dtab td.sep { border-left: 1.5px solid #c9d0e2; }
 .block-container { max-width: 100% !important; padding-left: 1.6rem !important; padding-right: 1.6rem !important; }
-.st-key-filters { background: #ffffff; border: 1px solid #e3e7f0; border-radius: 12px; padding: 8px 16px 10px !important;
-    margin-bottom: 8px; box-shadow: 0 1px 3px rgba(10,36,99,0.06); }
-.flt-l { font-size: 10.5px; color: #0a2463; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; margin: 2px 0 4px 2px; }
-.st-key-filters div[role="radiogroup"] label { padding: 4px 13px !important; }
-.st-key-filters div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] p { font-size: 12.5px !important; }
-.st-key-hero [data-testid="stColumn"]:last-child div[role="radiogroup"] label { padding: 5px 16px !important; }
 .dtab td, .dtab td.dt, .dtab th { text-align: center !important; }
 .st-key-seasmode { display: flex; align-items: flex-end; }
 .st-key-seasmode div[role="radiogroup"] { margin-left: auto; }
@@ -371,8 +344,9 @@ def qoq(mat):
 
 
 def yoy_bars(vals, key, h=250, show=None):
-    """Bars (latest navy, rest light); label = value + YoY in green / red."""
-    chg = vals.pct_change(fill_method=None)
+    """Bars (latest navy, rest light); label = value + YoY in green / red. vals: one value per year, NaN kept."""
+    chg = vals.pct_change(fill_method=None)                    # before dropna, so a gap year gives no YoY
+    vals, chg = vals.dropna(), chg[vals.notna()]
     if show is not None:
         vals, chg = vals[vals.index.isin(show)], chg[chg.index.isin(show)]
     if vals.empty:
@@ -393,7 +367,7 @@ def yoy_bars(vals, key, h=250, show=None):
 
 
 def ytd_chart(mat, k, series, h=250, show=None):
-    yoy_bars(mat[list(range(1, k + 1))].sum(axis=1, min_count=k).dropna(), f"ytd_{series}_{k}", h, show)
+    yoy_bars(mat[list(range(1, k + 1))].sum(axis=1, min_count=k), f"ytd_{series}_{k}", h, show)
 
 
 def full_year(mat):
@@ -419,8 +393,7 @@ def full_year(mat):
 def full_year_chart(mat, series, show, h=255):
     tot, p = full_year(mat)
     hist = tot[tot.index.isin(show)].dropna()
-    if p is None:
-        hist_last = hist.index[-1] if len(hist) else None
+    hist_last = hist.index[-1] if p is None and len(hist) else None
     fig = go.Figure()
     chg = tot.pct_change(fill_method=None)
 
@@ -437,7 +410,7 @@ def full_year_chart(mat, series, show, h=255):
         fig.add_bar(x=[p["cy"]], y=[p["ytd"]], marker_color=NAVY, name=f"YTD Q1-Q{p['k']}",
                     hovertemplate=f"YTD Q1-Q{p['k']}: %{{y:,.0f}}<extra></extra>")
         fig.add_bar(x=[p["cy"]], y=[p["proj"] - p["ytd"]], marker=dict(color="rgba(197,204,224,0.55)", line=dict(color=NAVY, width=1.5)),
-                    text=[lbl(p["proj"], p["proj"] / tot.dropna().iloc[-1] - 1 if tot.notna().any() else None, True)],
+                    text=[lbl(p["proj"], p["proj"] / tot.iloc[-2] - 1 if len(tot) > 1 and pd.notna(tot.iloc[-2]) else None, True)],
                     textposition="outside", cliponaxis=False, textfont=dict(size=11, color=NAVY),
                     error_y=dict(type="data", symmetric=False, array=[p["hi"] - p["proj"]], arrayminus=[p["proj"] - p["lo"]],
                                  color=NAVY, thickness=1.8, width=8),
@@ -449,16 +422,6 @@ def full_year_chart(mat, series, show, h=255):
     return p
 
 
-def quarter_bars(mat, k, series, h=250):
-    s = mat[k].dropna()
-    fig = go.Figure(go.Bar(x=s.index, y=s.values, text=[fmt(v) for v in s.values], textposition="outside",
-                           marker_color=[COLOR[series] if cy != s.index[-1] else AMBER for cy in s.index],
-                           hovertemplate="%{x}: %{y:,.0f}<extra></extra>"))
-    chart_layout(fig, height=h, showlegend=False, hovermode="closest",
-                 yaxis=dict(range=[s.min() * 0.85, s.max() * 1.08] if len(s) else None))
-    st.plotly_chart(fig, width="stretch", key=f"qbar_{series}_{k}")
-
-
 def share_chart(d, series, h=220):
     parent = PARENT[series]
     rows = d[d[series].notna() & d[parent].notna()]
@@ -466,17 +429,6 @@ def share_chart(d, series, h=220):
     chart_layout(fig, height=h, showlegend=False, xaxis=dict(tickangle=-90, tickfont=dict(size=8)),
                  yaxis=dict(tickformat=".0%", hoverformat=".1%"))
     st.plotly_chart(fig, width="stretch", key=f"share_{series}")
-
-
-def mix_chart(d, h=220):
-    rows = d[d.Total.notna()]
-    fig = go.Figure()
-    for o in ORIGINS:
-        fig.add_scatter(x=rows["label"], y=rows[o] / rows.Total, name=o, stackgroup="one", mode="lines",
-                        line=dict(width=0.5, color=COLOR[o]), fillcolor=COLOR[o])
-    chart_layout(fig, height=h, xaxis=dict(tickangle=-90, tickfont=dict(size=8)), yaxis=dict(tickformat=".0%", hoverformat=".1%"),
-                 legend=dict(orientation="h", x=0, y=1.12, yanchor="bottom", font=dict(size=10), bgcolor="rgba(0,0,0,0)"))
-    st.plotly_chart(fig, width="stretch", key="mix_share")
 
 
 def rolling_chart(d, series, h=270):
@@ -576,17 +528,6 @@ def share_lines(d, h=270):
     st.plotly_chart(fig, width="stretch", key="share_lines")
 
 
-def hero(title, unit="", right=None):
-    """Navy header bar: page title left, optional control (e.g. quarter pills) right."""
-    with st.container(key="hero"):
-        t_col, r_col = st.columns([3, 1.3], vertical_alignment="center")
-        t_col.markdown(f"<div class='hero-t'>{title}" + (f"<span class='hero-u'>{unit}</span>" if unit else "") + "</div>",
-                       unsafe_allow_html=True)
-        if right:
-            with r_col:
-                return right()
-
-
 def dashboard(d, series, n_years, k, crop):
     """Row 1 year bars | row 2 over time | row 3 seasonality + diagnostics | tables underneath."""
     mat = matrix(d, series)
@@ -599,7 +540,7 @@ def dashboard(d, series, n_years, k, crop):
         ytd_chart(mat, k, series, H, show)
     with r1[1], st.container(border=True):
         card_head(f"Q{k} across years")
-        yoy_bars(mat[k].dropna(), f"qbar_{series}_{k}", H, show)
+        yoy_bars(mat[k], f"qbar_{series}_{k}", H, show)
     with r1[2], st.container(border=True):
         _, p = full_year(mat)
         card_head("Full-year totals", f"range {fmt(p['lo'])} - {fmt(p['hi'])}" if p else None, small=True)
@@ -720,7 +661,8 @@ def gh_write(frame, sha, msg):
     gh_check(r)
     j = r.json()
     gh_state().update(csv=frame.copy(), sha=j["content"]["sha"])
-    gh_state().setdefault("history", []).insert(0, (j["commit"]["committer"]["date"], msg))
+    if "history" in gh_state():
+        gh_state()["history"].insert(0, (j["commit"]["committer"]["date"], msg))
 
 
 @st.cache_data(ttl=300, show_spinner=False)
@@ -753,14 +695,16 @@ def parse_num(txt):
     return float(txt) if txt else None
 
 
-def apply_entry(frame, cy, q, vals):
+def apply_entry(frame, changes):
+    """changes: {(crop_year, q): {column: value or None}}."""
     frame = frame.copy()
-    hit = (frame.crop_year == cy) & (frame.quarter == q)
-    if hit.any():
-        for c, v in vals.items():
-            frame.loc[hit, c] = v
-    else:
-        frame = pd.concat([frame, pd.DataFrame([{"crop_year": cy, "quarter": q, **vals}])])
+    for (cy, q), vals in changes.items():
+        hit = (frame.crop_year == cy) & (frame.quarter == f"Q{q}")
+        if hit.any():
+            for c, v in vals.items():
+                frame.loc[hit, c] = v
+        else:
+            frame = pd.concat([frame, pd.DataFrame([{"crop_year": cy, "quarter": f"Q{q}", **vals}])])
     frame = frame[~frame[COLS].isna().all(axis=1)]
     frame["_o"] = frame.crop_year.str[:2].astype(int) * 10 + frame.quarter.str[1].astype(int)
     frame = frame.sort_values("_o").drop(columns="_o").reindex(columns=["crop_year", "quarter", *COLS])
@@ -802,10 +746,10 @@ def value_notes(d, cy, q, vals):
 def save_changes(changes, d):
     with st.spinner("Saving..."):
         try:
-            for (cy, q), upd in sorted(changes.items()):
-                txt = " | ".join(f"{c} {fmt(v)}" for c, v in upd.items())
-                commit_change(lambda f, cy=cy, q=q, upd=upd: apply_entry(f, cy, f"Q{q}", upd),
-                              f"Entry {cy} Q{q} via dashboard | {txt}")
+            parts = sorted(changes.items())
+            head = ", ".join(f"{cy} Q{q}" for (cy, q), _ in parts)
+            txt = " ; ".join(" | ".join(f"{c} {fmt(v)}" for c, v in upd.items()) for _, upd in parts)
+            commit_change(lambda f: apply_entry(f, changes), f"Entry {head} via dashboard | {txt}")
         except (GitHubError, requests.RequestException) as ex:
             st.error(f"GitHub save failed: {ex}")
             return
@@ -845,6 +789,9 @@ def render_entry(d):
                     changes.setdefault(rows[i], {})[c] = b
     except ValueError:
         st.error("Numbers only (commas are fine).")
+        return
+    if any(v is not None and v < 0 for upd in changes.values() for v in upd.values()):
+        st.error("Grind cannot be negative.")
         return
     if not editable:
         return
@@ -889,7 +836,8 @@ def render_history():
         when = pd.Timestamp(ts).tz_convert(TZ)
         head, _, detail = msg.partition("|")
         for_ = head.replace("Entry ", "").replace(" via dashboard", "").strip() if msg.startswith("Entry ") else "-"
-        rows += (f"<tr><td class='ts'>{when:%d %b %H:%M}</td><td class='dt'>{for_}</td><td class='ts'>{detail.strip() or msg}</td>"
+        rows += (f"<tr><td class='ts'>{when:%d %b %H:%M}</td><td class='dt'>{html.escape(for_)}</td>"
+                 f"<td class='ts'>{html.escape(detail.strip() or msg)}</td>"
                  f"<td class='ts'>{'Dashboard' if msg.startswith('Entry ') else 'Local push'}</td></tr>")
         if rows.count("<tr>") >= 10:
             break
@@ -905,7 +853,7 @@ df = load()                                                    # crop-year quart
 TITLES = {"Total": "All Reported Grind : ECA + CAA + NCA + IVC + BR"}
 # the open page also lives in the URL, so a reload (e.g. Streamlit Cloud redeploying after a save) lands back on it
 st.session_state.setdefault("page", "Entry" if st.query_params.get("page") == "entry" else "Dashboard")
-for _k, _v in {"series": "Total", "basis": "Crop year", "page": "Dashboard"}.items():
+for _k, _v in {"series": "Total", "basis": "Crop year"}.items():
     st.session_state.setdefault(_k, _v)
 
 with st.sidebar:                                               # all filters live here, as compact pill groups
@@ -950,6 +898,8 @@ with st.sidebar:                                               # all filters liv
     cal = view(df, "Calendar year")                            # calendar quarters keep the side table simple
     rows = ""
     for c in ["Total"] + ORIGINS + EXTRA:
+        if cal[c].isna().all():
+            continue
         r = cal[cal[c].notna()].iloc[-1]
         rows += (f"<tr{' class=sel' if c == series else ''}><td>{c}</td><td>Q{int(r.q)} {str(r.cy0)[2:]}</td>"
                  f"<td><b>{fmt(r[c])}</b></td></tr>")
