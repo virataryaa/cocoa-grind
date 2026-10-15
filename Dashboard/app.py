@@ -265,8 +265,9 @@ def area_chart(d, series, h=200):
     if series == "Total":
         rows = d[d.Total.notna()]
         for c in ORIGINS:
-            fig.add_scatter(x=rows["label"], y=rows[c], name=c, stackgroup="one", mode="lines",
-                            line=dict(width=0.5, color=COLOR[c]), fillcolor=COLOR[c])
+            fig.add_bar(x=rows["label"], y=rows[c], name=c, marker_color=COLOR[c],
+                        hovertemplate=f"{c}: %{{y:,.0f}}<extra></extra>")
+        fig.update_layout(barmode="stack", bargap=0.15)
     else:
         rows = d[d[series].notna()]
         fig.add_bar(x=rows["label"], y=rows[series], name=series, marker_color=COLOR[series])
@@ -471,6 +472,98 @@ def mix_chart(d, h=220):
     st.plotly_chart(fig, width="stretch", key="mix_share")
 
 
+def rolling_chart(d, series, h=270):
+    """Trailing 4-quarter sum: annualised grind without the quarterly noise."""
+    rows = d[["label", series]].dropna()
+    roll = rows[series].rolling(4).sum()
+    ok = roll.notna()
+    x, y = rows["label"][ok], roll[ok]
+    fig = go.Figure(go.Scatter(x=x, y=y, mode="lines", line=dict(color=TEAL, width=2.5), fill="tozeroy",
+                               fillcolor="rgba(31,138,156,0.10)", hovertemplate="%{x}: %{y:,.0f}<extra></extra>"))
+    if len(y):
+        fig.add_scatter(x=[x.iloc[-1]], y=[y.iloc[-1]], mode="markers+text", marker=dict(color=NAVY, size=8),
+                        text=[f"<b>{fmt(y.iloc[-1])}</b>"], textposition="top left", textfont=dict(size=11, color=NAVY),
+                        hoverinfo="skip")
+    lo, hi = (y.min(), y.max()) if len(y) else (0, 1)
+    pad = (hi - lo) * 0.25 or hi * 0.05
+    chart_layout(fig, height=h, showlegend=False, xaxis=dict(tickangle=-90, tickfont=dict(size=8)),
+                 yaxis=dict(range=[lo - pad, hi + pad]))
+    st.plotly_chart(fig, width="stretch", key=f"roll_{series}")
+
+
+CONTRIB = {"Total": ORIGINS, "CAA": ["Malaysia", "CAA ex-Malaysia"], "ECA": ["German", "ECA ex-German"]}
+
+
+def contribution_chart(d, series, k, show, h=270):
+    """YoY change of quarter k split by part (origins for Total, sub-region vs rest for CAA / ECA), in % points."""
+    parts = CONTRIB[series]
+    tot = matrix(d, series)[k]
+    prev = tot.shift(1)
+    fig = go.Figure()
+    for p in parts:
+        m = matrix(d, p)[k].reindex(tot.index)
+        c = (m - m.shift(1)) / prev
+        c = c[c.index.isin(show)]
+        fig.add_bar(x=c.index, y=c.values, name=p, marker_color=COLOR.get(p, GREY) if p in COLOR else GREY,
+                    hovertemplate=f"{p}: %{{y:+.1%}}<extra></extra>")
+    yy = (tot / prev - 1)[lambda s: s.index.isin(show)]
+    fig.add_scatter(x=yy.index, y=yy.values, name=f"{series} YoY", mode="markers+text", marker=dict(color="#1a1a2e", size=8, symbol="diamond"),
+                    text=[f"{v:+.1%}" if pd.notna(v) else "" for v in yy.values], textposition="top center",
+                    textfont=dict(size=10, color="#1a1a2e"), hovertemplate=f"{series} YoY: %{{y:+.1%}}<extra></extra>")
+    chart_layout(fig, height=h, barmode="relative", hovermode="x unified", yaxis=dict(tickformat=".0%", hoverformat="+.1%"),
+                 legend=dict(orientation="h", x=0, y=1.12, yanchor="bottom", font=dict(size=10), bgcolor="rgba(0,0,0,0)"))
+    st.plotly_chart(fig, width="stretch", key=f"contrib_{series}_{k}")
+
+
+def deviation_chart(d, series, h=270, n=16, look=5):
+    """Each quarter vs the average of the same quarter over the previous 5 years."""
+    rows = d[["label", "cy0", "q", series]].dropna().reset_index(drop=True)
+    dev = []
+    for _, r in rows.iterrows():
+        past = rows[(rows.q == r.q) & (rows.cy0 < r.cy0) & (rows.cy0 >= r.cy0 - look)][series]
+        dev.append(r[series] / past.mean() - 1 if len(past) >= 3 else None)
+    rows["dev"] = dev
+    rows = rows.dropna(subset=["dev"]).tail(n)
+    fig = go.Figure(go.Bar(x=rows["label"], y=rows["dev"], marker_color=[GREEN if v >= 0 else RED for v in rows["dev"]],
+                           text=[f"{v:+.1%}" for v in rows["dev"]], textposition="outside", cliponaxis=False,
+                           textfont=dict(size=10), hovertemplate="%{x}: %{y:+.1%} vs 5y avg<extra></extra>"))
+    m = rows["dev"].abs().max() if len(rows) else 0.1
+    chart_layout(fig, height=h, showlegend=False, hovermode="closest", uniformtext=dict(minsize=9, mode="show"),
+                 xaxis=dict(tickangle=-90, tickfont=dict(size=9)), yaxis=dict(tickformat=".0%", range=[-m * 1.35, m * 1.35]))
+    st.plotly_chart(fig, width="stretch", key=f"dev_{series}")
+
+
+def origin_yoy_heatmap(d, n=8):
+    """YoY % of every origin for the last n quarters (same quarter a year earlier)."""
+    names = ["Total"] + ORIGINS + EXTRA
+    labels = list(d.loc[d[names].notna().any(axis=1), "label"].tail(n))
+    rows, vals = "", {}
+    for c in names:
+        s = d.set_index("label")[c]
+        key = d.set_index("label")[["cy0", "q"]]
+        for lb in labels:
+            cy0, q = key.loc[lb]
+            prev = d[(d.cy0 == cy0 - 1) & (d.q == q)][c]
+            v, p = s.get(lb), (prev.iloc[0] if len(prev) else None)
+            vals[(c, lb)] = v / p - 1 if pd.notna(v) and p is not None and pd.notna(p) and p else None
+    scale = pd.Series([v for v in vals.values() if v is not None]).abs().quantile(0.95) if vals else 0
+    for c in names:
+        rows += f"<tr><td class='dt'>{c}</td>" + "".join(
+            f"<td style='{heat_div(vals[(c, lb)], scale)}'>{pct(vals[(c, lb)])}</td>" for lb in labels) + "</tr>"
+    st.markdown("<table class='dtab w'><tr><th></th>" + "".join(f"<th>{lb}</th>" for lb in labels) + "</tr>" + rows + "</table>",
+                unsafe_allow_html=True)
+
+
+def share_lines(d, h=270):
+    rows = d[d.Total.notna()]
+    fig = go.Figure()
+    for o in ORIGINS:
+        fig.add_scatter(x=rows["label"], y=rows[o] / rows.Total, name=o, mode="lines", line=dict(color=COLOR[o], width=2.2))
+    chart_layout(fig, height=h, xaxis=dict(tickangle=-90, tickfont=dict(size=8)), yaxis=dict(tickformat=".0%", hoverformat=".1%"),
+                 legend=dict(orientation="h", x=0, y=1.12, yanchor="bottom", font=dict(size=10), bgcolor="rgba(0,0,0,0)"))
+    st.plotly_chart(fig, width="stretch", key="share_lines")
+
+
 def hero(title, unit="", right=None):
     """Navy header bar: page title left, optional control (e.g. quarter pills) right."""
     with st.container(key="hero"):
@@ -515,10 +608,28 @@ def dashboard(d, series, n_years, k, crop):
     with r2[2], st.container(border=True):
         if series == "Total":
             card_head("Origin share of Total")
-            mix_chart(dn, 270)
+            share_lines(dn, 270)
         else:
             card_head(f"{series} as % of {PARENT[series]}")
             share_chart(dn, series, 270)
+    ra = st.columns(3, gap="small")
+    with ra[0], st.container(border=True):
+        card_head("Rolling 4-quarter total")
+        rolling_chart(d, series, 270)
+    with ra[1], st.container(border=True):
+        card_head("vs 5-year average, same quarter")
+        deviation_chart(d, series, 270)
+    with ra[2], st.container(border=True):
+        if series in CONTRIB:
+            card_head(f"Q{k} YoY contribution")
+            contribution_chart(d, series, k, show, 270)
+        else:
+            card_head("YoY by origin, last 8 quarters")
+            origin_yoy_heatmap(d)
+    if series in CONTRIB and series == "Total":
+        with st.container(border=True):
+            card_head("YoY by origin, last 8 quarters")
+            origin_yoy_heatmap(d)
     yoy = mat.pct_change(fill_method=None).loc[show]
     qq = pd.DataFrame(qoq(mat), index=mat.index, columns=mat.columns).loc[show]
     r3 = st.columns([1.35, 0.8, 0.8], gap="small")
