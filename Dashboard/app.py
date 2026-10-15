@@ -132,6 +132,7 @@ div[role="radiogroup"] label:has(input:checked) div[data-testid="stMarkdownConta
 .st-key-filters div[role="radiogroup"] label { padding: 4px 13px !important; }
 .st-key-filters div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] p { font-size: 12.5px !important; }
 .st-key-hero [data-testid="stColumn"]:last-child div[role="radiogroup"] label { padding: 5px 16px !important; }
+.dtab td, .dtab td.dt, .dtab th { text-align: center !important; }
 </style>
 """,
     unsafe_allow_html=True,
@@ -599,8 +600,8 @@ def render_entry(d):
         g[c] = [fmt(have.loc[(cy, q), c]) if (cy, q) in have.index and pd.notna(have.loc[(cy, q), c]) else "" for cy, q in rows]
     vals = g[ORIGINS].apply(lambda col: col.map(parse_num))
     g.insert(len(ORIGINS), "Total", [fmt(r.sum()) if r.notna().all() else "" for _, r in vals.iterrows()])
-    cfg = {c: st.column_config.TextColumn(c, alignment="right", width=88 if c in EXTRA else 76) for c in g.columns}
-    cfg["Total"] = st.column_config.TextColumn("Total", alignment="right", width=82, disabled=True)
+    cfg = {c: st.column_config.TextColumn(c, alignment="center", width=88 if c in EXTRA else 76) for c in g.columns}
+    cfg["Total"] = st.column_config.TextColumn("Total", alignment="center", width=82, disabled=True)
     cfg["_index"] = st.column_config.TextColumn("Quarter", width=82)
     key = "entry_grid"
     shown = g.style.set_properties(subset=["Total"], **{"background-color": "#e9ecf2", "font-weight": "600"})
