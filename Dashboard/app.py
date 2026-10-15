@@ -138,10 +138,12 @@ div[role="radiogroup"] label:has(input:checked) div[data-testid="stMarkdownConta
 .dtab td, .dtab td.dt, .dtab th { text-align: center !important; }
 .st-key-seasmode { display: flex; align-items: flex-end; }
 .st-key-seasmode div[role="radiogroup"] { margin-left: auto; }
-.st-key-pagenav button { width: 100%; border-radius: 999px; border: 1.5px solid #b4500f !important; font-weight: 700; }
-.st-key-pagenav [data-testid="stBaseButton-secondary"] { background: #fbeee4 !important; color: #b4500f !important; }
-.st-key-pagenav [data-testid="stBaseButton-primary"] { background: #b4500f !important; color: #ffffff !important; }
-.st-key-pagenav button p { font-size: 14px !important; font-weight: 700; }
+.st-key-pagenav button { width: auto !important; min-height: 0 !important; padding: 2px 14px !important; border-radius: 999px;
+    border: 1px solid #e6c4ac !important; }
+.st-key-pagenav [data-testid="stBaseButton-secondary"] { background: transparent !important; color: #b4500f !important; }
+.st-key-pagenav [data-testid="stBaseButton-primary"] { background: #fbeee4 !important; color: #b4500f !important; border-color: #b4500f !important; }
+.st-key-pagenav button p { font-size: 12px !important; font-weight: 600; }
+.pill.sm { font-size: 10px; font-weight: 500; color: #5a6688; background: #eef0f6; }
 </style>
 """,
     unsafe_allow_html=True,
@@ -229,8 +231,8 @@ def chart_layout(fig, **extra):
     return fig
 
 
-def card_head(title, pill=None):
-    st.markdown(f"<div class='card-title'>{title}" + (f" <span class='pill'>{pill}</span>" if pill else "") + "</div>",
+def card_head(title, pill=None, small=False):
+    st.markdown(f"<div class='card-title'>{title}" + (f" <span class='pill{' sm' if small else ''}'>{pill}</span>" if pill else "") + "</div>",
                 unsafe_allow_html=True)
 
 
@@ -335,7 +337,7 @@ def q_table(mat, k, n_years):
                  f"<td class='b sep'>{fmt(ytd[cy])}</td>{chg(ytd_yoy[cy])}</tr>")
     hist = show[:-1]
     if len(hist) >= 2:
-        for i, (name, f) in enumerate([("Avg", "mean"), ("Min", "min"), ("Max", "max")]):
+        for i, (name, f) in enumerate([("Min", "min"), ("Max", "max")]):
             vals = [getattr(mat.loc[hist, c], f)() for c in m.columns]
             rows += (f"<tr class='st{' st0' if i == 0 else ''}'><td class='dt'>{name} L{len(hist)}</td>"
                      + "".join(f"<td>{fmt(v)}</td>" for v in vals)
@@ -412,7 +414,14 @@ def full_year_chart(mat, series, show, h=255):
     if p is None:
         hist_last = hist.index[-1] if len(hist) else None
     fig = go.Figure()
-    fig.add_bar(x=hist.index, y=hist.values, text=[fmt(v) for v in hist.values], textposition="outside", cliponaxis=False,
+    chg = tot.pct_change(fill_method=None)
+
+    def lbl(v, c, bold=False):
+        v = f"<b>{fmt(v)}</b>" if bold else fmt(v)
+        return v + (f"<br><b><span style='color:{GREEN if c >= 0 else RED}'>{c:+.1%}</span></b>" if pd.notna(c) else "")
+
+    fig.add_bar(x=hist.index, y=hist.values, text=[lbl(v, chg.get(cy), p is None and cy == hist_last) for cy, v in hist.items()],
+                textposition="outside", cliponaxis=False,
                 marker_color=[NAVY if (p is None and cy == hist_last) else "#c5cce0" for cy in hist.index],
                 textfont=dict(size=10, color="#4a5578"), hovertemplate="%{x}: %{y:,.0f}<extra></extra>", name="Total")
     top = hist.max() if len(hist) else 0
@@ -420,13 +429,14 @@ def full_year_chart(mat, series, show, h=255):
         fig.add_bar(x=[p["cy"]], y=[p["ytd"]], marker_color=NAVY, name=f"YTD Q1-Q{p['k']}",
                     hovertemplate=f"YTD Q1-Q{p['k']}: %{{y:,.0f}}<extra></extra>")
         fig.add_bar(x=[p["cy"]], y=[p["proj"] - p["ytd"]], marker=dict(color="rgba(197,204,224,0.55)", line=dict(color=NAVY, width=1.5)),
-                    text=[f"<b>{fmt(p['proj'])}</b>"], textposition="outside", cliponaxis=False, textfont=dict(size=11, color=NAVY),
+                    text=[lbl(p["proj"], p["proj"] / tot.dropna().iloc[-1] - 1 if tot.notna().any() else None, True)],
+                    textposition="outside", cliponaxis=False, textfont=dict(size=11, color=NAVY),
                     error_y=dict(type="data", symmetric=False, array=[p["hi"] - p["proj"]], arrayminus=[p["proj"] - p["lo"]],
                                  color=NAVY, thickness=1.8, width=8),
                     name="Projection", hovertemplate=f"Projection: {fmt(p['proj'])}<br>10-90%: {fmt(p['lo'])} - {fmt(p['hi'])}<extra></extra>")
         top = max(top, p["hi"])
     chart_layout(fig, height=h, showlegend=False, hovermode="closest", barmode="stack", bargap=0.3, uniformtext=dict(minsize=9, mode="show"),
-                 yaxis=dict(range=[0, top * 1.15]), margin=dict(t=30, b=10, l=10, r=10))
+                 yaxis=dict(range=[0, top * 1.22]), margin=dict(t=30, b=10, l=10, r=10))
     st.plotly_chart(fig, width="stretch", key=f"fy_{series}")
     return p
 
@@ -497,8 +507,7 @@ def dashboard(d, series, n_years, k, crop):
     r2 = st.columns(3, gap="small")
     with r2[0], st.container(border=True):
         _, p = full_year(mat)
-        card_head("Full-year totals", (f"{p['cy']} = YTD Q1-Q{p['k']} / seasonal share ({p['n']}y)  ·  10-90%: "
-                                       f"{fmt(p['lo'])} - {fmt(p['hi'])}") if p else None)
+        card_head("Full-year totals", f"range {fmt(p['lo'])} - {fmt(p['hi'])}" if p else None, small=True)
         full_year_chart(mat, series, show, 270)
     with r2[1], st.container(border=True):
         card_head(f"Q{k} across years")
@@ -778,8 +787,7 @@ with st.sidebar:                                               # all filters liv
         st.session_state["page"] = "Dashboard"
 
     with st.container(key="pagenav"):                          # Entry sits on its own, top of the pane
-        if st.button("Entry", type="primary" if st.session_state["page"] == "Entry" else "secondary", key="entry_btn",
-                     width="stretch"):
+        if st.button("Entry", type="primary" if st.session_state["page"] == "Entry" else "secondary", key="entry_btn"):
             st.session_state["page"] = "Dashboard" if st.session_state["page"] == "Entry" else "Entry"
             st.rerun()
     page = st.session_state["page"]
@@ -809,13 +817,10 @@ with st.sidebar:                                               # all filters liv
     rows = ""
     for c in ["Total"] + ORIGINS + EXTRA:
         r = cal[cal[c].notna()].iloc[-1]
-        ly = cal[(cal.cy0 == r.cy0 - 1) & (cal.q == r.q)][c]
-        yy = r[c] / ly.iloc[0] - 1 if len(ly) and pd.notna(ly.iloc[0]) else None
-        yt = f"<td class='{'up' if yy >= 0 else 'dn'}'>{yy:+.1%}</td>" if yy is not None else "<td>-</td>"
         rows += (f"<tr{' class=sel' if c == series else ''}><td>{c}</td><td>Q{int(r.q)} {str(r.cy0)[2:]}</td>"
-                 f"<td><b>{fmt(r[c])}</b></td>{yt}</tr>")
+                 f"<td><b>{fmt(r[c])}</b></td></tr>")
     st.markdown("<div class='sb-sep'></div><div class='sb-label'>Latest (calendar quarter)</div>"
-                "<table class='sb-tab'><tr><th></th><th>Qtr</th><th>Tonnes</th><th>YoY</th></tr>" + rows + "</table>",
+                "<table class='sb-tab'><tr><th></th><th>Qtr</th><th>Tonnes</th></tr>" + rows + "</table>",
                 unsafe_allow_html=True)
 
 with st.container(key="hero"):                                 # navy header: title left, page tabs right
