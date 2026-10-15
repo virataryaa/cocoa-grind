@@ -118,9 +118,9 @@ div[role="radiogroup"] label:has(input:checked) div[data-testid="stMarkdownConta
 .st-key-hero div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] p { color: #c9d3ea !important; font-size: 13px !important; }
 .st-key-hero div[role="radiogroup"] label:has(input:checked) { background: #ffffff !important; }
 .st-key-hero div[role="radiogroup"] label:has(input:checked) div[data-testid="stMarkdownContainer"] p { color: #0a2463 !important; font-weight: 700; }
-.dtab.w { width: 100%; font-size: 12px; }
-.dtab.w td { padding: 3px 8px; }
-.dtab.w th { padding: 4px 8px; }
+.dtab.w { width: auto; font-size: 11.5px; margin: 0 auto; }
+.dtab.w td { padding: 2px 9px; }
+.dtab.w th { padding: 3px 9px; }
 .dtab td.up { color: #1f9d6f; font-weight: 600; } .dtab td.dn { color: #c94a4a; font-weight: 600; }
 .dtab tr.st td { background: #f4f6fb; font-style: italic; color: #4a5578; }
 .dtab tr.st0 td { border-top: 1.5px solid #c9d0e2; }
@@ -428,7 +428,7 @@ def dashboard(d, series, n_years, k, crop):
     with r1[2], st.container(border=True):
         card_head(f"YTD (Q1 to Q{k})")
         ytd_chart(mat.loc[show], k, series, 320)
-    r2 = st.columns([1.75, 1, 1], gap="small")
+    r2 = st.columns([1.2, 1, 1], gap="small")
     with r2[0], st.container(border=True):
         card_head(f"{series} grind by {'crop' if crop else 'calendar'} year")
         q_table(mat, k, n_years)
@@ -445,15 +445,14 @@ def dashboard(d, series, n_years, k, crop):
     yoy = mat.pct_change(fill_method=None).loc[show]
     qq = pd.DataFrame(qoq(mat), index=mat.index, columns=mat.columns).loc[show]
     if series == "Total":
-        r3 = st.columns([1, 1.75], gap="small")
-        with r3[0]:
-            with st.container(border=True):
-                card_head("YoY change")
-                change_table(yoy)
-            with st.container(border=True):
-                card_head("QoQ change")
-                change_table(qq)
+        r3 = st.columns([0.8, 0.8, 1.2], gap="small")
+        with r3[0], st.container(border=True):
+            card_head("YoY change")
+            change_table(yoy)
         with r3[1], st.container(border=True):
+            card_head("QoQ change")
+            change_table(qq)
+        with r3[2], st.container(border=True):
             card_head("Quarterly grind by origin")
             quarter_table(dn, series, wide=True)
     else:
