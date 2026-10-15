@@ -215,7 +215,7 @@ def chart_layout(fig, **extra):
     yaxis.update(extra.pop("yaxis", {}))
     fig.update_layout(template="plotly_white", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                       font=dict(color="#1a1a2e"), hovermode=extra.pop("hovermode", "x unified"), xaxis=xaxis, yaxis=yaxis,
-                      margin=dict(t=20, b=10, l=10, r=10),
+                      margin=extra.pop("margin", dict(t=20, b=10, l=10, r=10)),
                       legend=extra.pop("legend", dict(orientation="h", x=0, y=-0.12, xanchor="left", yanchor="top",
                                                       font=dict(size=11), bgcolor="rgba(0,0,0,0)")),
                       **extra)
@@ -353,16 +353,75 @@ def qoq(mat):
     return flat.pct_change(fill_method=None).values.reshape(mat.shape)
 
 
-def ytd_chart(mat, k, series, h=250):
-    ytd = mat[list(range(1, k + 1))].sum(axis=1, min_count=k).dropna()
-    chg = ytd.pct_change(fill_method=None)
+def yoy_bars(vals, key, h=250, show=None):
+    """Bars (latest navy, rest light); label = value + YoY in green / red."""
+    chg = vals.pct_change(fill_method=None)
+    if show is not None:
+        vals, chg = vals[vals.index.isin(show)], chg[chg.index.isin(show)]
+    if vals.empty:
+        st.markdown("<div class='card-desc'>No data yet.</div>", unsafe_allow_html=True)
+        return
+    last = vals.index[-1]
+    text = []
+    for cy, v in vals.items():
+        c = chg.get(cy)
+        val = f"<b>{fmt(v)}</b>" if cy == last else fmt(v)
+        text.append(val + (f"<br><b><span style='color:{GREEN if c >= 0 else RED}'>{c:+.1%}</span></b>" if pd.notna(c) else ""))
+    fig = go.Figure(go.Bar(x=vals.index, y=vals.values, text=text, textposition="outside", cliponaxis=False,
+                           marker_color=[NAVY if cy == last else "#c5cce0" for cy in vals.index],
+                           textfont=dict(size=11, color="#4a5578"), hovertemplate="%{x}: %{y:,.0f}<extra></extra>"))
+    chart_layout(fig, height=h, showlegend=False, hovermode="closest", bargap=0.35,
+                 yaxis=dict(range=[0, vals.max() * 1.22]), margin=dict(t=30, b=10, l=10, r=10))
+    st.plotly_chart(fig, width="stretch", key=key)
+
+
+def ytd_chart(mat, k, series, h=250, show=None):
+    yoy_bars(mat[list(range(1, k + 1))].sum(axis=1, min_count=k).dropna(), f"ytd_{series}_{k}", h, show)
+
+
+def full_year(mat):
+    """Full-year totals; for an unfinished latest year, YTD / seasonal share (every complete year in history)."""
+    full = mat.notna().all(axis=1)
+    tot = mat.sum(axis=1).where(full)
+    cur = mat.index[-1]
+    if full[cur]:
+        return tot, None
+    kc = 0
+    while kc < 4 and pd.notna(mat.loc[cur, kc + 1]):
+        kc += 1
+    hist = [cy for cy in mat.index[:-1] if full[cy]]
+    if kc == 0 or len(hist) < 3:
+        return tot, None
+    qs = list(range(1, kc + 1))
+    share = mat.loc[hist, qs].sum(axis=1) / tot[hist]
+    ytd = float(mat.loc[cur, qs].sum())
+    return tot, dict(cy=cur, k=kc, ytd=ytd, proj=ytd / share.mean(), lo=ytd / share.quantile(0.9),
+                     hi=ytd / share.quantile(0.1), n=len(hist))
+
+
+def full_year_chart(mat, series, show, h=255):
+    tot, p = full_year(mat)
+    hist = tot[tot.index.isin(show)].dropna()
+    if p is None:
+        hist_last = hist.index[-1] if len(hist) else None
     fig = go.Figure()
-    fig.add_bar(x=ytd.index, y=ytd.values, name=f"YTD (Q1 to Q{k})", marker_color=COLOR[series], opacity=0.85)
-    fig.add_scatter(x=chg.index, y=chg.values, name="YoY %", yaxis="y2", mode="lines+markers", line=dict(color=AMBER, width=2.5))
-    lo = min(ytd.min() * 0.9, ytd.min() - 1) if len(ytd) else 0
-    chart_layout(fig, height=h, showlegend=False, yaxis=dict(range=[lo, ytd.max() * 1.04] if len(ytd) else None),
-                 yaxis2=dict(overlaying="y", side="right", tickformat=".0%", showgrid=False, color="#4a5578"))
-    st.plotly_chart(fig, width="stretch", key=f"ytd_{series}_{k}")
+    fig.add_bar(x=hist.index, y=hist.values, text=[fmt(v) for v in hist.values], textposition="outside", cliponaxis=False,
+                marker_color=[NAVY if (p is None and cy == hist_last) else "#c5cce0" for cy in hist.index],
+                textfont=dict(size=10, color="#4a5578"), hovertemplate="%{x}: %{y:,.0f}<extra></extra>", name="Total")
+    top = hist.max() if len(hist) else 0
+    if p is not None:
+        fig.add_bar(x=[p["cy"]], y=[p["ytd"]], marker_color=NAVY, name=f"YTD Q1-Q{p['k']}",
+                    hovertemplate=f"YTD Q1-Q{p['k']}: %{{y:,.0f}}<extra></extra>")
+        fig.add_bar(x=[p["cy"]], y=[p["proj"] - p["ytd"]], marker=dict(color="rgba(197,204,224,0.55)", line=dict(color=NAVY, width=1.5)),
+                    text=[f"<b>{fmt(p['proj'])}</b>"], textposition="outside", cliponaxis=False, textfont=dict(size=11, color=NAVY),
+                    error_y=dict(type="data", symmetric=False, array=[p["hi"] - p["proj"]], arrayminus=[p["proj"] - p["lo"]],
+                                 color=NAVY, thickness=1.8, width=8),
+                    name="Projection", hovertemplate=f"Projection: {fmt(p['proj'])}<br>10-90%: {fmt(p['lo'])} - {fmt(p['hi'])}<extra></extra>")
+        top = max(top, p["hi"])
+    chart_layout(fig, height=h, showlegend=False, hovermode="closest", barmode="stack", bargap=0.35,
+                 yaxis=dict(range=[0, top * 1.15]), margin=dict(t=30, b=10, l=10, r=10))
+    st.plotly_chart(fig, width="stretch", key=f"fy_{series}")
+    return p
 
 
 def quarter_bars(mat, k, series, h=250):
@@ -427,42 +486,39 @@ def dashboard(d, series, n_years, k, crop):
             seasonality_chart(mat, series, n_years, 300)
     with r1[2], st.container(border=True):
         card_head(f"YTD (Q1 to Q{k})")
-        ytd_chart(mat.loc[show], k, series, 320)
-    r2 = st.columns([1.2, 1, 1], gap="small")
+        ytd_chart(mat, k, series, 320, show)
+    r2 = st.columns(3, gap="small")
     with r2[0], st.container(border=True):
-        card_head(f"{series} grind by {'crop' if crop else 'calendar'} year")
-        q_table(mat, k, n_years)
+        _, p = full_year(mat)
+        card_head("Full-year totals", (f"{p['cy']} = YTD Q1-Q{p['k']} / seasonal share ({p['n']}y)  ·  10-90%: "
+                                       f"{fmt(p['lo'])} - {fmt(p['hi'])}") if p else None)
+        full_year_chart(mat, series, show, 270)
     with r2[1], st.container(border=True):
         card_head(f"Q{k} across years")
-        quarter_bars(mat.loc[show], k, series, 255)
+        yoy_bars(mat[k].dropna(), f"qbar_{series}_{k}", 270, show)
     with r2[2], st.container(border=True):
         if series == "Total":
             card_head("Origin share of Total")
-            mix_chart(dn, 255)
+            mix_chart(dn, 270)
         else:
             card_head(f"{series} as % of {PARENT[series]}")
-            share_chart(dn, series, 255)
+            share_chart(dn, series, 270)
     yoy = mat.pct_change(fill_method=None).loc[show]
     qq = pd.DataFrame(qoq(mat), index=mat.index, columns=mat.columns).loc[show]
+    r3 = st.columns([1.35, 0.8, 0.8], gap="small")
+    with r3[0], st.container(border=True):
+        card_head(f"{series} grind by {'crop' if crop else 'calendar'} year")
+        q_table(mat, k, n_years)
+    with r3[1], st.container(border=True):
+        card_head("YoY change")
+        change_table(yoy)
+    with r3[2], st.container(border=True):
+        card_head("QoQ change")
+        change_table(qq)
     if series == "Total":
-        r3 = st.columns([0.8, 0.8, 1.2], gap="small")
-        with r3[0], st.container(border=True):
-            card_head("YoY change")
-            change_table(yoy)
-        with r3[1], st.container(border=True):
-            card_head("QoQ change")
-            change_table(qq)
-        with r3[2], st.container(border=True):
+        with st.container(border=True):
             card_head("Quarterly grind by origin")
             quarter_table(dn, series, wide=True)
-    else:
-        r3 = st.columns(2, gap="small")
-        with r3[0], st.container(border=True):
-            card_head("YoY change")
-            change_table(yoy)
-        with r3[1], st.container(border=True):
-            card_head("QoQ change")
-            change_table(qq)
 
 
 # ---------------------------------------------------------------------------------------------
